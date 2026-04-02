@@ -42,7 +42,7 @@ function pickVersion(request: JsonGenerationRequest): SchemaVersion {
   const prevState = request.input.prev_state;
   if (prevState && typeof prevState === "object" && "version" in prevState) {
     const version = (prevState as { version?: unknown }).version;
-    if (version === "v0.5" || version === "v0.4") {
+    if (version === "v0.5") {
       return version;
     }
   }
@@ -50,12 +50,12 @@ function pickVersion(request: JsonGenerationRequest): SchemaVersion {
   const currentState = request.input.current_state;
   if (currentState && typeof currentState === "object" && "version" in currentState) {
     const version = (currentState as { version?: unknown }).version;
-    if (version === "v0.5" || version === "v0.4") {
+    if (version === "v0.5") {
       return version;
     }
   }
 
-  return "v0.4";
+  return "v0.5";
 }
 
 function buildStateDelta(request: JsonGenerationRequest): StateDelta {
@@ -72,22 +72,14 @@ function buildStateDelta(request: JsonGenerationRequest): StateDelta {
     contract_patch: {},
     add_anchors: [],
     update_anchor_status: [],
-    ...(version === "v0.5"
-      ? {
-          update_anchor_exposure: [],
-        }
-      : {}),
+    update_anchor_exposure: [],
     add_sections: [
       {
         id: sectionId,
         label: `Turn ${turn}`,
         gist: summarizeUserTurn(userTurn),
         warrant: "user_asserted",
-        ...(version === "v0.5"
-          ? {
-              domain_mode: "factual",
-            }
-          : {}),
+        domain_mode: "factual",
         status: "active",
         parents: [],
         revive_when: [],
@@ -108,13 +100,9 @@ function buildStateDelta(request: JsonGenerationRequest): StateDelta {
       },
     ],
     update_sections: [],
-    ...(version === "v0.5"
-      ? {
-          add_interpretation_openings: [],
-          update_interpretation_openings: [],
-          add_rejected_variants: [],
-        }
-      : {}),
+    add_interpretation_openings: [],
+    update_interpretation_openings: [],
+    add_rejected_variants: [],
     add_voids: [],
     resolve_voids: [],
     add_obstructions: [],
@@ -157,11 +145,7 @@ function buildProjectionOutput(request: JsonGenerationRequest): ProjectionOutput
     turn: request.turn,
     projection_ir: {
       selected_frontiers: [],
-      ...(version === "v0.5"
-        ? {
-            frame_commitments: [],
-          }
-        : {}),
+      frame_commitments: [],
       claim_frames: [
         {
           id: claimId,

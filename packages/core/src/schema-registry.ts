@@ -9,13 +9,15 @@ import type {
   JsonObject,
   SchemaKind,
   SchemaName,
-  SchemaVersion,
   SchemaValidationFailure,
   SchemaValidationIssue,
+  SchemaVersion,
   ShellState,
 } from "./types.js";
 
-const V0_4_SCHEMA_NAMES: SchemaName[] = [
+export const CURRENT_SCHEMA_VERSION: SchemaVersion = "v0.5";
+
+const SCHEMA_NAMES: SchemaName[] = [
   "shell_state.schema.json",
   "state_delta.schema.json",
   "negotiation_result.schema.json",
@@ -23,22 +25,8 @@ const V0_4_SCHEMA_NAMES: SchemaName[] = [
   "audit_result.schema.json",
 ];
 
-const V0_5_SCHEMA_NAMES: SchemaName[] = [
-  "shell_state_v0_5.schema.json",
-  "state_delta_v0_5.schema.json",
-  "negotiation_result_v0_5.schema.json",
-  "projection_output_v0_5.schema.json",
-  "audit_result_v0_5.schema.json",
-];
-
-const SCHEMA_NAMES: SchemaName[] = [
-  ...V0_4_SCHEMA_NAMES,
-  ...V0_5_SCHEMA_NAMES,
-];
-
 const INTERNAL_SCHEMA_FILES = [
-  "rough_shell_v0_4_common_defs.json",
-  "rough_shell_v0_5_common_defs.json",
+  "common_defs.json",
   ...SCHEMA_NAMES,
 ] as const;
 
@@ -119,27 +107,21 @@ function readVersion(value: unknown): SchemaVersion | undefined {
   }
 
   const version = (value as { version?: unknown }).version;
-  return version === "v0.5" || version === "v0.4" ? version : undefined;
+  return version === CURRENT_SCHEMA_VERSION ? version : undefined;
 }
 
-export function schemaNameForVersion(version: SchemaVersion, kind: SchemaKind): SchemaName {
-  const family = version === "v0.5" ? "v0_5" : "v0_4";
-
+export function schemaNameForVersion(_version: SchemaVersion, kind: SchemaKind): SchemaName {
   switch (kind) {
     case "shell_state":
-      return family === "v0_5" ? "shell_state_v0_5.schema.json" : "shell_state.schema.json";
+      return "shell_state.schema.json";
     case "state_delta":
-      return family === "v0_5" ? "state_delta_v0_5.schema.json" : "state_delta.schema.json";
+      return "state_delta.schema.json";
     case "negotiation_result":
-      return family === "v0_5"
-        ? "negotiation_result_v0_5.schema.json"
-        : "negotiation_result.schema.json";
+      return "negotiation_result.schema.json";
     case "projection_output":
-      return family === "v0_5"
-        ? "projection_output_v0_5.schema.json"
-        : "projection_output.schema.json";
+      return "projection_output.schema.json";
     case "audit_result":
-      return family === "v0_5" ? "audit_result_v0_5.schema.json" : "audit_result.schema.json";
+      return "audit_result.schema.json";
     default: {
       const exhaustiveCheck: never = kind;
       throw new Error(`Unhandled schema kind ${String(exhaustiveCheck)}.`);
@@ -151,7 +133,10 @@ export function findRepositoryRoot(startDir?: string): string {
   let currentDir = startDir ?? dirname(fileURLToPath(import.meta.url));
 
   while (true) {
-    if (existsSync(join(currentDir, "rough_shell_v0_4_common_defs.json"))) {
+    if (
+      existsSync(join(currentDir, "package.json")) &&
+      existsSync(join(currentDir, "schemas", CURRENT_SCHEMA_VERSION, "common_defs.json"))
+    ) {
       return currentDir;
     }
 
@@ -247,7 +232,7 @@ export class SchemaRegistry {
   }
 
   public validateShellState(value: unknown): ShellState {
-    const version = readVersion(value) ?? "v0.4";
+    const version = readVersion(value) ?? CURRENT_SCHEMA_VERSION;
     return this.validate<ShellState>(this.getSchemaName(version, "shell_state"), value);
   }
 
@@ -267,8 +252,10 @@ export class SchemaRegistry {
   }
 
   private loadAllSchemas(): void {
+    const schemaDir = join(this.repoRoot, "schemas", CURRENT_SCHEMA_VERSION);
+
     for (const fileName of INTERNAL_SCHEMA_FILES) {
-      const filePath = join(this.repoRoot, fileName);
+      const filePath = join(schemaDir, fileName);
       const schema = readJsonFile(filePath);
       this.schemaCache.set(fileName, schema);
       this.ajv.addSchema(schema, fileName);

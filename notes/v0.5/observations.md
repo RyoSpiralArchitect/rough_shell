@@ -41,8 +41,8 @@ That made premature concretization too easy.
 
 Interpretation:
 
-- v0.4 models missing facts well enough
-- v0.4 models missing interpretive frame too weakly
+- the runtime models missing facts well enough
+- the runtime models missing interpretive frame too weakly
 
 ### 2. The system lacks a native notion of "premature narrowing"
 
@@ -171,7 +171,7 @@ v0.5 may want smaller controlled vocabularies, or a split between:
 
 ## Practical takeaway
 
-v0.4 is already capable of productive correction loops.
+The runtime is already capable of productive correction loops.
 The latest run shows that clearly.
 
 But the next big gain is probably not "better prompts" alone.

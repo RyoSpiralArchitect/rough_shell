@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "rough_shell_v0_4_common_defs.json",
-  "title": "rough-shell-v0.4 common definitions",
+  "$id": "common_defs.json",
+  "title": "rough-shell common definitions",
   "$defs": {
     "Audience": {
       "type": "string",
@@ -167,7 +167,8 @@
         "project",
         "contract_shift",
         "negotiate",
-        "audit_rewrite"
+        "audit_rewrite",
+        "reframe"
       ]
     },
     "ClaimKind": {
@@ -178,7 +179,8 @@
         "comparative",
         "normative",
         "procedural",
-        "meta"
+        "meta",
+        "speculative"
       ]
     },
     "LeakageType": {
@@ -211,7 +213,8 @@
         "negotiation_fidelity",
         "unsupported_claim",
         "scar_underexposure",
-        "scar_overexposure"
+        "scar_overexposure",
+        "frame_narrowing"
       ]
     },
     "FixAction": {
@@ -374,10 +377,10 @@
           "minLength": 1
         },
         "kind": {
-          "$ref": "#/$defs/AnchorKind"
+          "$ref": "common_defs.json#/$defs/AnchorKind"
         },
         "priority": {
-          "$ref": "#/$defs/Priority"
+          "$ref": "common_defs.json#/$defs/Priority"
         },
         "source": {
           "type": "string",
@@ -389,10 +392,13 @@
           ]
         },
         "scope": {
-          "$ref": "#/$defs/AnchorScope"
+          "$ref": "common_defs.json#/$defs/AnchorScope"
         },
         "status": {
-          "$ref": "#/$defs/AnchorStatus"
+          "$ref": "common_defs.json#/$defs/AnchorStatus"
+        },
+        "exposure_policy": {
+          "$ref": "#/$defs/AnchorExposurePolicy"
         }
       },
       "required": [
@@ -402,7 +408,8 @@
         "priority",
         "source",
         "scope",
-        "status"
+        "status",
+        "exposure_policy"
       ]
     },
     "ProjectionSignature": {
@@ -500,10 +507,13 @@
           "minLength": 1
         },
         "warrant": {
-          "$ref": "#/$defs/Warrant"
+          "$ref": "common_defs.json#/$defs/Warrant"
+        },
+        "domain_mode": {
+          "$ref": "#/$defs/DomainMode"
         },
         "status": {
-          "$ref": "#/$defs/SectionStatus"
+          "$ref": "common_defs.json#/$defs/SectionStatus"
         },
         "parents": {
           "type": "array",
@@ -520,10 +530,10 @@
           "default": []
         },
         "projection_signature": {
-          "$ref": "#/$defs/ProjectionSignature"
+          "$ref": "common_defs.json#/$defs/ProjectionSignature"
         },
         "branch_cost": {
-          "$ref": "#/$defs/BranchCost"
+          "$ref": "common_defs.json#/$defs/BranchCost"
         },
         "variants": {
           "type": "array",
@@ -538,6 +548,7 @@
         "label",
         "gist",
         "warrant",
+        "domain_mode",
         "status",
         "parents",
         "revive_when",
@@ -804,14 +815,14 @@
       "properties": {
         "version": {
           "type": "string",
-          "const": "v0.4"
+          "const": "v0.5"
         },
         "turn": {
           "type": "integer",
           "minimum": 0
         },
         "contract": {
-          "$ref": "#/$defs/Contract"
+          "$ref": "common_defs.json#/$defs/Contract"
         },
         "anchors": {
           "type": "array",
@@ -828,19 +839,31 @@
         "voids": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Void"
+            "$ref": "common_defs.json#/$defs/Void"
           }
         },
         "obstructions": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Obstruction"
+            "$ref": "common_defs.json#/$defs/Obstruction"
           }
         },
         "negotiations": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Negotiation"
+            "$ref": "common_defs.json#/$defs/Negotiation"
+          }
+        },
+        "interpretation_openings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterpretationOpening"
+          }
+        },
+        "rejected_variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RejectedVariant"
           }
         },
         "traces": {
@@ -859,6 +882,8 @@
         "voids",
         "obstructions",
         "negotiations",
+        "interpretation_openings",
+        "rejected_variants",
         "traces"
       ]
     },
@@ -896,10 +921,13 @@
           "type": "string"
         },
         "warrant": {
-          "$ref": "#/$defs/Warrant"
+          "$ref": "common_defs.json#/$defs/Warrant"
+        },
+        "domain_mode": {
+          "$ref": "#/$defs/DomainMode"
         },
         "status": {
-          "$ref": "#/$defs/SectionStatus"
+          "$ref": "common_defs.json#/$defs/SectionStatus"
         },
         "parents": {
           "type": "array",
@@ -914,10 +942,10 @@
           }
         },
         "projection_signature": {
-          "$ref": "#/$defs/ProjectionSignature"
+          "$ref": "common_defs.json#/$defs/ProjectionSignature"
         },
         "branch_cost": {
-          "$ref": "#/$defs/BranchCost"
+          "$ref": "common_defs.json#/$defs/BranchCost"
         },
         "variants": {
           "type": "array",
@@ -1003,7 +1031,7 @@
       "properties": {
         "version": {
           "type": "string",
-          "const": "v0.4"
+          "const": "v0.5"
         },
         "turn": {
           "type": "integer",
@@ -1014,7 +1042,7 @@
           "minLength": 1
         },
         "contract_patch": {
-          "$ref": "#/$defs/ContractPatch"
+          "$ref": "common_defs.json#/$defs/ContractPatch"
         },
         "add_anchors": {
           "type": "array",
@@ -1025,7 +1053,13 @@
         "update_anchor_status": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/AnchorStatusUpdate"
+            "$ref": "common_defs.json#/$defs/AnchorStatusUpdate"
+          }
+        },
+        "update_anchor_exposure": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnchorExposureUpdate"
           }
         },
         "add_sections": {
@@ -1040,40 +1074,58 @@
             "$ref": "#/$defs/SectionPatch"
           }
         },
+        "add_interpretation_openings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterpretationOpening"
+          }
+        },
+        "update_interpretation_openings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterpretationOpeningPatch"
+          }
+        },
+        "add_rejected_variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RejectedVariant"
+          }
+        },
         "add_voids": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Void"
+            "$ref": "common_defs.json#/$defs/Void"
           }
         },
         "resolve_voids": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/VoidResolution"
+            "$ref": "common_defs.json#/$defs/VoidResolution"
           }
         },
         "add_obstructions": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Obstruction"
+            "$ref": "common_defs.json#/$defs/Obstruction"
           }
         },
         "clear_obstructions": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ObstructionClear"
+            "$ref": "common_defs.json#/$defs/ObstructionClear"
           }
         },
         "add_negotiations": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Negotiation"
+            "$ref": "common_defs.json#/$defs/Negotiation"
           }
         },
         "update_negotiations": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/NegotiationPatch"
+            "$ref": "common_defs.json#/$defs/NegotiationPatch"
           }
         },
         "traces": {
@@ -1090,8 +1142,12 @@
         "contract_patch",
         "add_anchors",
         "update_anchor_status",
+        "update_anchor_exposure",
         "add_sections",
         "update_sections",
+        "add_interpretation_openings",
+        "update_interpretation_openings",
+        "add_rejected_variants",
         "add_voids",
         "resolve_voids",
         "add_obstructions",
@@ -1149,14 +1205,14 @@
       "properties": {
         "version": {
           "type": "string",
-          "const": "v0.4"
+          "const": "v0.5"
         },
         "turn": {
           "type": "integer",
           "minimum": 1
         },
         "projection_style_recommendation": {
-          "$ref": "#/$defs/ProjectionStyle"
+          "$ref": "common_defs.json#/$defs/ProjectionStyle"
         },
         "global_reason": {
           "type": "string",
@@ -1165,7 +1221,7 @@
         "decisions": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/NegotiationDecision"
+            "$ref": "common_defs.json#/$defs/NegotiationDecision"
           }
         },
         "traces": {
@@ -1202,7 +1258,7 @@
           "minLength": 1
         },
         "warrant": {
-          "$ref": "#/$defs/Warrant"
+          "$ref": "common_defs.json#/$defs/Warrant"
         },
         "depends_on": {
           "type": "array",
@@ -1374,6 +1430,13 @@
           },
           "default": []
         },
+        "frame_commitments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
         "claim_frames": {
           "type": "array",
           "items": {
@@ -1383,21 +1446,22 @@
         "scars": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Scar"
+            "$ref": "common_defs.json#/$defs/Scar"
           }
         },
         "withheld": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Withheld"
+            "$ref": "common_defs.json#/$defs/Withheld"
           }
         },
         "body_plan": {
-          "$ref": "#/$defs/BodyPlan"
+          "$ref": "common_defs.json#/$defs/BodyPlan"
         }
       },
       "required": [
         "selected_frontiers",
+        "frame_commitments",
         "claim_frames",
         "scars",
         "withheld",
@@ -1410,7 +1474,7 @@
       "properties": {
         "version": {
           "type": "string",
-          "const": "v0.4"
+          "const": "v0.5"
         },
         "turn": {
           "type": "integer",
@@ -1442,7 +1506,7 @@
           "$ref": "#/$defs/FindingCategory"
         },
         "severity": {
-          "$ref": "#/$defs/Level3"
+          "$ref": "common_defs.json#/$defs/Level3"
         },
         "target_ids": {
           "type": "array",
@@ -1456,7 +1520,7 @@
           "minLength": 1
         },
         "fix": {
-          "$ref": "#/$defs/FixAction"
+          "$ref": "common_defs.json#/$defs/FixAction"
         },
         "status": {
           "type": "string",
@@ -1482,14 +1546,14 @@
       "properties": {
         "version": {
           "type": "string",
-          "const": "v0.4"
+          "const": "v0.5"
         },
         "turn": {
           "type": "integer",
           "minimum": 1
         },
         "verdict": {
-          "$ref": "#/$defs/Verdict"
+          "$ref": "common_defs.json#/$defs/Verdict"
         },
         "summary": {
           "type": "string",
@@ -1498,12 +1562,12 @@
         "required_actions": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/FixAction"
+            "$ref": "common_defs.json#/$defs/FixAction"
           },
           "default": []
         },
         "projection_style_recommendation": {
-          "$ref": "#/$defs/ProjectionStyle"
+          "$ref": "common_defs.json#/$defs/ProjectionStyle"
         },
         "findings": {
           "type": "array",
@@ -1526,6 +1590,217 @@
         "required_actions",
         "projection_style_recommendation",
         "findings"
+      ]
+    },
+    "AnchorExposurePolicy": {
+      "type": "string",
+      "enum": [
+        "latent",
+        "expose_if_touched",
+        "always_expose"
+      ]
+    },
+    "InterpretationOpeningStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "selected",
+        "collapsed",
+        "rejected"
+      ]
+    },
+    "RejectedVariantKind": {
+      "type": "string",
+      "enum": [
+        "interpretation_frame",
+        "section_variant",
+        "frontier",
+        "claim_strategy"
+      ]
+    },
+    "RejectedBy": {
+      "type": "string",
+      "enum": [
+        "user",
+        "system",
+        "audit",
+        "inferred"
+      ]
+    },
+    "DomainMode": {
+      "type": "string",
+      "enum": [
+        "factual",
+        "hypothetical",
+        "fictional",
+        "symbolic"
+      ]
+    },
+    "AnchorExposureUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_policy": {
+          "$ref": "#/$defs/AnchorExposurePolicy"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "exposure_policy",
+        "reason"
+      ]
+    },
+    "InterpretationOpening": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reading": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changes_if_selected": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clarification_prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collapsible_with_one_clarification": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/InterpretationOpeningStatus"
+        },
+        "competes_with": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "reading",
+        "changes_if_selected",
+        "clarification_prompt",
+        "collapsible_with_one_clarification",
+        "status",
+        "competes_with",
+        "related_sections"
+      ]
+    },
+    "InterpretationOpeningPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/InterpretationOpeningStatus"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clarification_prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ]
+    },
+    "RejectedVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/RejectedVariantKind"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "rejected_by": {
+          "$ref": "#/$defs/RejectedBy"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "superseded_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "summary",
+        "derived_from",
+        "rejected_by",
+        "reason",
+        "superseded_by",
+        "turn"
       ]
     }
   }

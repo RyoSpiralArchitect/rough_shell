@@ -102,7 +102,7 @@ function parseArgs(argv: string[], repoRoot: string): CliOptions {
     artifactsDir: resolve(repoRoot, ".rough-shell-runs"),
     help: false,
     provider: "mock",
-    statePath: resolve(repoRoot, "sample_shell_state_v0_5.json"),
+    statePath: resolve(repoRoot, "state", "v0.5", "sample_shell_state.json"),
   };
 
   for (let index = 0; index < argv.length; index += 1) {

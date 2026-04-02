@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shell_state.schema.json",
+  "title": "rough-shell-shell-state",
+  "$ref": "common_defs.json#/$defs/ShellState"
+}

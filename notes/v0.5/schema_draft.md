@@ -50,13 +50,13 @@ This draft turns the current v0.5 hunches into concrete state slots without wiri
 
 ## Files
 
-- `rough_shell_v0_5_common_defs.json`
-- `shell_state_v0_5.schema.json`
-- `state_delta_v0_5.schema.json`
-- `negotiation_result_v0_5.schema.json`
-- `projection_output_v0_5.schema.json`
-- `audit_result_v0_5.schema.json`
-- `sample_shell_state_v0_5.json`
+- `schemas/v0.5/common_defs.json`
+- `schemas/v0.5/shell_state.schema.json`
+- `schemas/v0.5/state_delta.schema.json`
+- `schemas/v0.5/negotiation_result.schema.json`
+- `schemas/v0.5/projection_output.schema.json`
+- `schemas/v0.5/audit_result.schema.json`
+- `state/v0.5/sample_shell_state.json`
 
 ## Current limits of this draft
 

@@ -43,9 +43,9 @@ Each pass is schema-constrained, artifacts are saved turn by turn, and the runti
 
 ## Current direction
 
-The repository contains both a legacy `v0.4` bundle and a newer `v0.5`-first runtime path.
+The repository currently targets a `v0.5` runtime contract, with versioning carried by directory layout instead of file-name suffixes. That keeps the current assets readable while leaving room for future schema upgrades under a new version folder.
 
-`v0.5` is where the more interesting state-machine ideas are being pushed forward. Recent additions include:
+Recent additions include:
 
 - `interpretation_openings`
   First-class storage for materially different live readings of the same question.
@@ -57,6 +57,21 @@ The repository contains both a legacy `v0.4` bundle and a newer `v0.5`-first run
   A place for imaginative or generated claims that should not pretend to be externally verified.
 
 That split matters because "what must be known?" and "what may be invented?" are not the same problem.
+
+## Roadmap
+
+The near-term roadmap currently looks like this:
+
+1. Cross-provider contract stabilization.
+   Absorb provider-specific quirks in the adapter and normalization layers so `rough_shell` sees a steadier runtime contract across OpenAI, Gemini, Claude, Mistral, and other compatible backends.
+2. Epistemic discipline and anti-overclaim.
+   Make the shell less permissive of unsupported confidence, performative certainty, flattened compliance, premature closure, and fast speculative leaps that read smoother than they are licensed to be.
+3. Safe exploratory shell.
+   Re-open exploration only after the shell is steadier, so hypothetical, fictional, symbolic, and branched answers can stay live without collapsing into hallucinated certainty or silent narrowing.
+4. Run-driven adaptation and memory.
+   Turn repeated failures from real runs into reusable structure: better corrections, more durable rejected variants, cleaner decay rules, curated examples, and regression cases that teach the runtime what not to repeat.
+
+Examples and regression-style evaluations cut across every phase. The long-term aim is not only to improve answers, but to improve the runtime's ability to learn from the shape of its own failures.
 
 ## Repository layout
 
@@ -74,6 +89,14 @@ This is a small TypeScript workspace:
   Anthropic tool-call adapter.
 - `apps/cli`
   Turn-by-turn CLI / REPL for running and inspecting the runtime.
+- `schemas/v0.5`
+  The current schema contract with unversioned file names inside a versioned directory.
+- `prompts/v0.5`
+  The current 4-pass prompt bundle.
+- `state/v0.5`
+  The current sample shell state used by the CLI by default.
+- `examples/`
+  Curated run writeups distilled from local artifacts.
 - `notes/`
   Design observations, schema drafts, and run-driven iteration notes.
 
@@ -107,6 +130,12 @@ Each session directory also includes:
 
 This makes it practical to inspect not only what the assistant said, but why the runtime believed it was allowed to say it.
 
+## Examples
+
+Curated run writeups live under [examples/](./examples/README.md).
+
+The first example is [desert-mermaid-fictional-domain.md](./examples/desert-mermaid-fictional-domain.md), a real Gemini run where an imaginative question was initially misclassified as an information gap. It is a good snapshot of the kind of failure this repository is trying to model and repair.
+
 ## Getting started
 
 Install dependencies:
@@ -133,13 +162,7 @@ Run one turn with the mock provider:
 npm run cli -- --provider mock --once "What kind of question forces the runtime to branch?"
 ```
 
-By default, the CLI starts from `sample_shell_state_v0_5.json`.
-
-If you want the legacy base state explicitly:
-
-```bash
-npm run cli -- --provider mock --state sample_shell_state.json
-```
+By default, the CLI starts from `state/v0.5/sample_shell_state.json`.
 
 ## Running with live providers
 
@@ -195,30 +218,23 @@ The interactive CLI supports:
 - `/last`
 - `/exit`
 
-## Schema assets
+## Current assets
 
-Legacy `v0.4` bundle:
+Current schema bundle:
 
-- [common defs](./rough_shell_v0_4_common_defs.json)
-- [shell state schema](./shell_state.schema.json)
-- [state delta schema](./state_delta.schema.json)
-- [negotiation result schema](./negotiation_result.schema.json)
-- [projection output schema](./projection_output.schema.json)
-- [audit result schema](./audit_result.schema.json)
-- [sample shell state](./sample_shell_state.json)
-- [4-pass prompts](./rough_shell_v0_4_prompts.md)
+- [common defs](./schemas/v0.5/common_defs.json)
+- [shell state schema](./schemas/v0.5/shell_state.schema.json)
+- [state delta schema](./schemas/v0.5/state_delta.schema.json)
+- [negotiation result schema](./schemas/v0.5/negotiation_result.schema.json)
+- [projection output schema](./schemas/v0.5/projection_output.schema.json)
+- [audit result schema](./schemas/v0.5/audit_result.schema.json)
 
-Current `v0.5` bundle:
+Current runtime inputs and prompts:
 
-- [v0.5 common defs](./rough_shell_v0_5_common_defs.json)
-- [v0.5 shell state schema](./shell_state_v0_5.schema.json)
-- [v0.5 state delta schema](./state_delta_v0_5.schema.json)
-- [v0.5 negotiation result schema](./negotiation_result_v0_5.schema.json)
-- [v0.5 projection output schema](./projection_output_v0_5.schema.json)
-- [v0.5 audit result schema](./audit_result_v0_5.schema.json)
-- [v0.5 sample shell state](./sample_shell_state_v0_5.json)
-- [v0.5 schema notes](./notes/v0_5_schema_draft.md)
-- [v0.5 run observations](./notes/v0_5_observations.md)
+- [sample shell state](./state/v0.5/sample_shell_state.json)
+- [4-pass prompts](./prompts/v0.5/4-pass.md)
+- [schema notes](./notes/v0.5/schema_draft.md)
+- [run observations](./notes/v0.5/observations.md)
 
 ## Status
 

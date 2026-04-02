@@ -10,8 +10,7 @@ export type Audience = "unknown" | "general" | "expert" | "mixed";
 export type Stakes = "low" | "medium" | "high" | "critical";
 export type Level3 = "low" | "medium" | "high";
 export type Priority = "low" | "medium" | "high" | "critical";
-export type SchemaVersion = "v0.4" | "v0.5";
-export type SchemaFamily = "v0_4" | "v0_5";
+export type SchemaVersion = "v0.5";
 export type SchemaKind =
   | "shell_state"
   | "state_delta"
@@ -109,12 +108,7 @@ export type SchemaName =
   | "state_delta.schema.json"
   | "negotiation_result.schema.json"
   | "projection_output.schema.json"
-  | "audit_result.schema.json"
-  | "shell_state_v0_5.schema.json"
-  | "state_delta_v0_5.schema.json"
-  | "negotiation_result_v0_5.schema.json"
-  | "projection_output_v0_5.schema.json"
-  | "audit_result_v0_5.schema.json";
+  | "audit_result.schema.json";
 export type AnchorExposurePolicy = "latent" | "expose_if_touched" | "always_expose";
 export type InterpretationOpeningStatus = "open" | "selected" | "collapsed" | "rejected";
 export type RejectedVariantKind =

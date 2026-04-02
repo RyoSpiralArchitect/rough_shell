@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit_result.schema.json",
+  "title": "rough-shell-audit-result",
+  "$ref": "common_defs.json#/$defs/AuditResult"
+}

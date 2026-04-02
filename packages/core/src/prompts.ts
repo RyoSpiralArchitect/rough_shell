@@ -37,7 +37,7 @@ function extractTemplate(source: string, pass: PassName): PromptTemplate {
 }
 
 export function loadPromptSet(repoRoot = findRepositoryRoot()): PromptSet {
-  const promptFilePath = join(repoRoot, "rough_shell_v0_4_prompts.md");
+  const promptFilePath = join(repoRoot, "prompts", "v0.5", "4-pass.md");
   const markdown = readFileSync(promptFilePath, "utf8");
 
   return {

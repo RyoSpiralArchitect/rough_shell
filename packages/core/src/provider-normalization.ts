@@ -158,7 +158,7 @@ function readProjectionStyle(value: unknown): ProjectionStyle | undefined {
 
 function readSchemaVersion(value: unknown): SchemaVersion | undefined {
   const version = readString(value) as SchemaVersion | undefined;
-  return version === "v0.4" || version === "v0.5" ? version : undefined;
+  return version === "v0.5" ? version : undefined;
 }
 
 function readVerdict(value: unknown): Verdict | undefined {
@@ -753,7 +753,7 @@ function normalizeStateUpdaterResponse(
 
   const prevState = asRecord(input.prev_state);
   const schemaVersion =
-    readSchemaVersion(record.version) ?? readSchemaVersion(prevState?.version) ?? "v0.4";
+    readSchemaVersion(record.version) ?? readSchemaVersion(prevState?.version) ?? "v0.5";
   const turn = readNumber(record.turn) ?? readNumber(prevState?.turn) ?? 0;
   const existingAnchorIds = new Set(
     readStringArray(
@@ -887,7 +887,7 @@ function normalizeProjectCompilerResponse(
 
   const currentState = asRecord(input.current_state);
   const schemaVersion =
-    readSchemaVersion(record.version) ?? readSchemaVersion(currentState?.version) ?? "v0.4";
+    readSchemaVersion(record.version) ?? readSchemaVersion(currentState?.version) ?? "v0.5";
   const projectionIr = normalizeProjectionIrLike(record.projection_ir, schemaVersion);
   if (!projectionIr) {
     return {
@@ -916,7 +916,7 @@ function normalizeNegotiatorResponse(
 
   const currentState = asRecord(input.current_state);
   const schemaVersion =
-    readSchemaVersion(record.version) ?? readSchemaVersion(currentState?.version) ?? "v0.4";
+    readSchemaVersion(record.version) ?? readSchemaVersion(currentState?.version) ?? "v0.5";
   const turn = readNumber(record.turn) ?? readNumber(currentState?.turn) ?? 1;
   const decisionsSource = Array.isArray(record.decisions)
     ? record.decisions
@@ -961,7 +961,7 @@ function normalizeAuditorResponse(rawResponse: unknown, input: Record<string, un
     readSchemaVersion(record.version) ??
     readSchemaVersion(projectionOutput?.version) ??
     readSchemaVersion(currentState?.version) ??
-    "v0.4";
+    "v0.5";
   const turn = readNumber(record.turn) ?? readNumber(projectionOutput?.turn) ?? 1;
   const findings = normalizeAuditFindings(record.findings ?? record.checks);
   const verdict =

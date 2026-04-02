@@ -1,14 +1,14 @@
-# rough-shell v0.4 — JSON Schemas + 4-pass prompts
+# rough-shell v0.5 — JSON Schemas + 4-pass prompts
 
 This bundle contains:
 
-- `rough_shell_v0_4_common_defs.json`
-- `shell_state.schema.json`
-- `state_delta.schema.json`
-- `negotiation_result.schema.json`
-- `projection_output.schema.json`
-- `audit_result.schema.json`
-- `sample_shell_state.json`
+- `schemas/v0.5/common_defs.json`
+- `schemas/v0.5/shell_state.schema.json`
+- `schemas/v0.5/state_delta.schema.json`
+- `schemas/v0.5/negotiation_result.schema.json`
+- `schemas/v0.5/projection_output.schema.json`
+- `schemas/v0.5/audit_result.schema.json`
+- `state/v0.5/sample_shell_state.json`
 
 Below are prompt templates for the 4-pass runtime.
 
@@ -37,7 +37,7 @@ A practical retry policy is: at most 1 compiler retry per user turn.
 ### System prompt
 
 ```text
-You are Pass 1 / StateUpdater for rough-shell-v0.4.
+You are Pass 1 / StateUpdater for rough-shell-v0.5.
 
 Your job is to update shell state, not to answer the user.
 
@@ -120,7 +120,7 @@ Produce ONLY `state_delta.schema.json`.
 ### System prompt
 
 ```text
-You are Pass 2 / Negotiator for rough-shell-v0.4.
+You are Pass 2 / Negotiator for rough-shell-v0.5.
 
 Your job is to turn anchor conflicts into explicit frontiers.
 You do not answer the user.
@@ -163,7 +163,7 @@ Produce ONLY `negotiation_result.schema.json`.
 ### System prompt
 
 ```text
-You are Pass 3 / ProjectCompiler for rough-shell-v0.4.
+You are Pass 3 / ProjectCompiler for rough-shell-v0.5.
 
 Your job is to compile a licensed partial answer together with `projection_ir`.
 You are not a generic assistant. You are a claim compiler.
@@ -231,7 +231,7 @@ Produce ONLY `projection_output.schema.json`.
 ### System prompt
 
 ```text
-You are Pass 4 / Auditor for rough-shell-v0.4.
+You are Pass 4 / Auditor for rough-shell-v0.5.
 
 You audit a compiled answer for laundering, silent bridging, missing exposure, and negotiation drift.
 
@@ -334,7 +334,7 @@ def run_turn(prev_state, user_turn, source_snippets=None, last_audit=None):
 
 ## Delta-application notes
 
-A simple merge policy is enough for v0.4:
+A simple merge policy is enough for the current runtime:
 
 - `contract_patch`: deep-merge into `state.contract`
 - `add_*`: append new objects, reject duplicate IDs

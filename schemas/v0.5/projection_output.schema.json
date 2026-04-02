@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "projection_output.schema.json",
+  "title": "rough-shell-projection-output",
+  "$ref": "common_defs.json#/$defs/ProjectionOutput"
+}
