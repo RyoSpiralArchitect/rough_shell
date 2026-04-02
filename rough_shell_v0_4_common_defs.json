@@ -1,0 +1,1532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rough_shell_v0_4_common_defs.json",
+  "title": "rough-shell-v0.4 common definitions",
+  "$defs": {
+    "Audience": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "general",
+        "expert",
+        "mixed"
+      ]
+    },
+    "Stakes": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "Level3": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "Priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "ProjectionStyle": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "single",
+        "branched",
+        "meta",
+        "clarify"
+      ]
+    },
+    "Warrant": {
+      "type": "string",
+      "enum": [
+        "local_inference",
+        "user_asserted",
+        "source_observed",
+        "externally_verified"
+      ]
+    },
+    "AnchorKind": {
+      "type": "string",
+      "enum": [
+        "veto",
+        "constraint",
+        "preference"
+      ]
+    },
+    "AnchorScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "turn",
+        "local"
+      ]
+    },
+    "AnchorStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "relaxed"
+      ]
+    },
+    "SectionStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "latent",
+        "frozen",
+        "retired"
+      ]
+    },
+    "VoidEffect": {
+      "type": "string",
+      "enum": [
+        "changes_entire_content",
+        "changes_content_selection",
+        "changes_risk_boundary",
+        "changes_tone",
+        "changes_ordering",
+        "changes_evaluation_boundary"
+      ]
+    },
+    "EffectScope": {
+      "type": "string",
+      "enum": [
+        "local",
+        "global"
+      ]
+    },
+    "CouplingMode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "joint",
+        "gated_by",
+        "parent_of"
+      ]
+    },
+    "VoidStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "parked",
+        "resolved"
+      ]
+    },
+    "ObstructionType": {
+      "type": "string",
+      "enum": [
+        "semantic_split",
+        "goal_tension",
+        "evidence_gap",
+        "value_conflict",
+        "time_conflict",
+        "anchor_conflict"
+      ]
+    },
+    "ExposureOperator": {
+      "type": "string",
+      "enum": [
+        "premise_disclosure",
+        "scope_boundary",
+        "withheld_alternative",
+        "tradeoff_note",
+        "branched_projection"
+      ]
+    },
+    "ObstructionStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cleared"
+      ]
+    },
+    "TraceAction": {
+      "type": "string",
+      "enum": [
+        "anchor_add",
+        "anchor_relax",
+        "fork",
+        "suspend",
+        "obstruct",
+        "revive",
+        "resolve",
+        "retire",
+        "project",
+        "contract_shift",
+        "negotiate",
+        "audit_rewrite"
+      ]
+    },
+    "ClaimKind": {
+      "type": "string",
+      "enum": [
+        "descriptive",
+        "causal",
+        "comparative",
+        "normative",
+        "procedural",
+        "meta"
+      ]
+    },
+    "LeakageType": {
+      "type": "string",
+      "enum": [
+        "false_completeness",
+        "causal_overreach",
+        "audience_misfit",
+        "boundary_breach",
+        "false_finality",
+        "false_consensus"
+      ]
+    },
+    "ScarScope": {
+      "type": "string",
+      "enum": [
+        "claim",
+        "sentence",
+        "block",
+        "answer"
+      ]
+    },
+    "FindingCategory": {
+      "type": "string",
+      "enum": [
+        "provenance",
+        "bridge",
+        "implicature",
+        "scope_coverage",
+        "negotiation_fidelity",
+        "unsupported_claim",
+        "scar_underexposure",
+        "scar_overexposure"
+      ]
+    },
+    "FixAction": {
+      "type": "string",
+      "enum": [
+        "add_scar",
+        "drop_claim",
+        "shrink_claim",
+        "rebundle_scars",
+        "switch_projection_style",
+        "add_tradeoff_note",
+        "rewrite"
+      ]
+    },
+    "Verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "revise",
+        "block"
+      ]
+    },
+    "Budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "answer_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scar_density_max": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "branch_budget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clarification_budget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "meta_projection_allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "answer_tokens",
+        "scar_density_max",
+        "branch_budget",
+        "clarification_budget",
+        "meta_projection_allowed"
+      ]
+    },
+    "Contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "$ref": "#/$defs/Audience"
+        },
+        "stakes": {
+          "$ref": "#/$defs/Stakes"
+        },
+        "factual_strictness": {
+          "$ref": "#/$defs/Level3"
+        },
+        "ambiguity_tolerance": {
+          "$ref": "#/$defs/Level3"
+        },
+        "exploration_width": {
+          "type": "string",
+          "enum": [
+            "narrow",
+            "medium",
+            "wide"
+          ]
+        },
+        "projection_style": {
+          "$ref": "#/$defs/ProjectionStyle"
+        },
+        "budgets": {
+          "$ref": "#/$defs/Budgets"
+        }
+      },
+      "required": [
+        "audience",
+        "stakes",
+        "factual_strictness",
+        "ambiguity_tolerance",
+        "exploration_width",
+        "projection_style",
+        "budgets"
+      ]
+    },
+    "ContractPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "$ref": "#/$defs/Audience"
+        },
+        "stakes": {
+          "$ref": "#/$defs/Stakes"
+        },
+        "factual_strictness": {
+          "$ref": "#/$defs/Level3"
+        },
+        "ambiguity_tolerance": {
+          "$ref": "#/$defs/Level3"
+        },
+        "exploration_width": {
+          "type": "string",
+          "enum": [
+            "narrow",
+            "medium",
+            "wide"
+          ]
+        },
+        "projection_style": {
+          "$ref": "#/$defs/ProjectionStyle"
+        },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "answer_tokens": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "scar_density_max": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "branch_budget": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "clarification_budget": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "meta_projection_allowed": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "Anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/AnchorKind"
+        },
+        "priority": {
+          "$ref": "#/$defs/Priority"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "user",
+            "system",
+            "domain",
+            "inferred"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/AnchorScope"
+        },
+        "status": {
+          "$ref": "#/$defs/AnchorStatus"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "kind",
+        "priority",
+        "source",
+        "scope",
+        "status"
+      ]
+    },
+    "ProjectionSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowed_claim_set": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "mandatory_exposures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "clarification_needs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "anchor_touch": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "obstruction_touch": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "allowed_claim_set",
+        "mandatory_exposures",
+        "clarification_needs",
+        "anchor_touch",
+        "obstruction_touch"
+      ]
+    },
+    "BranchCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cognitive_load": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "projection_block_risk": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "obstruction_yield": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "revive_likelihood": {
+          "$ref": "#/$defs/Level3"
+        }
+      },
+      "required": [
+        "cognitive_load",
+        "projection_block_risk",
+        "obstruction_yield",
+        "revive_likelihood"
+      ]
+    },
+    "Section": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gist": {
+          "type": "string",
+          "minLength": 1
+        },
+        "warrant": {
+          "$ref": "#/$defs/Warrant"
+        },
+        "status": {
+          "$ref": "#/$defs/SectionStatus"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "revive_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "projection_signature": {
+          "$ref": "#/$defs/ProjectionSignature"
+        },
+        "branch_cost": {
+          "$ref": "#/$defs/BranchCost"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "gist",
+        "warrant",
+        "status",
+        "parents",
+        "revive_when",
+        "projection_signature",
+        "branch_cost",
+        "variants"
+      ]
+    },
+    "Void": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect": {
+          "$ref": "#/$defs/VoidEffect"
+        },
+        "effect_scope": {
+          "$ref": "#/$defs/EffectScope"
+        },
+        "coupled_with": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "coupling_mode": {
+          "$ref": "#/$defs/CouplingMode"
+        },
+        "resolution_priority": {
+          "$ref": "#/$defs/Priority"
+        },
+        "unresolved_blocks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "exposure_required_if_touched": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/VoidStatus"
+        },
+        "resolution_requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "question",
+        "effect",
+        "effect_scope",
+        "coupled_with",
+        "coupling_mode",
+        "resolution_priority",
+        "unresolved_blocks",
+        "exposure_required_if_touched",
+        "status",
+        "resolution_requires"
+      ]
+    },
+    "Obstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "between": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2
+        },
+        "type": {
+          "$ref": "#/$defs/ObstructionType"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bridge_risk": {
+          "$ref": "#/$defs/Level3"
+        },
+        "exposure_operator": {
+          "$ref": "#/$defs/ExposureOperator"
+        },
+        "clearance_modes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExposureOperator"
+          },
+          "minItems": 1
+        },
+        "status": {
+          "$ref": "#/$defs/ObstructionStatus"
+        }
+      },
+      "required": [
+        "id",
+        "between",
+        "type",
+        "note",
+        "bridge_risk",
+        "exposure_operator",
+        "clearance_modes",
+        "status"
+      ]
+    },
+    "Frontier": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "satisfies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "relaxes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "projection_delta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_cost": {
+          "$ref": "#/$defs/Level3"
+        }
+      },
+      "required": [
+        "id",
+        "satisfies",
+        "relaxes",
+        "projection_delta",
+        "exposure_cost"
+      ]
+    },
+    "Negotiation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2
+        },
+        "unsat_core": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2
+        },
+        "frontiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Frontier"
+          },
+          "minItems": 1
+        },
+        "selected": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alternatives_preserved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "settled"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "anchors",
+        "unsat_core",
+        "frontiers",
+        "selected",
+        "reason",
+        "alternatives_preserved",
+        "status"
+      ]
+    },
+    "Trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/$defs/TraceAction"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "cause": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "id",
+        "action",
+        "targets",
+        "cause",
+        "turn"
+      ]
+    },
+    "ShellState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.4"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contract": {
+          "$ref": "#/$defs/Contract"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          }
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Section"
+          }
+        },
+        "voids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Void"
+          }
+        },
+        "obstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Obstruction"
+          }
+        },
+        "negotiations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Negotiation"
+          }
+        },
+        "traces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Trace"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "turn",
+        "contract",
+        "anchors",
+        "sections",
+        "voids",
+        "obstructions",
+        "negotiations",
+        "traces"
+      ]
+    },
+    "AnchorStatusUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AnchorStatus"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "reason"
+      ]
+    },
+    "SectionPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "gist": {
+          "type": "string"
+        },
+        "warrant": {
+          "$ref": "#/$defs/Warrant"
+        },
+        "status": {
+          "$ref": "#/$defs/SectionStatus"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "revive_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "projection_signature": {
+          "$ref": "#/$defs/ProjectionSignature"
+        },
+        "branch_cost": {
+          "$ref": "#/$defs/BranchCost"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "VoidResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "resolution": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "resolution",
+        "reason"
+      ]
+    },
+    "ObstructionClear": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ]
+    },
+    "NegotiationPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "alternatives_preserved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "settled"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "StateDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.4"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract_patch": {
+          "$ref": "#/$defs/ContractPatch"
+        },
+        "add_anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          }
+        },
+        "update_anchor_status": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnchorStatusUpdate"
+          }
+        },
+        "add_sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Section"
+          }
+        },
+        "update_sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SectionPatch"
+          }
+        },
+        "add_voids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Void"
+          }
+        },
+        "resolve_voids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VoidResolution"
+          }
+        },
+        "add_obstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Obstruction"
+          }
+        },
+        "clear_obstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObstructionClear"
+          }
+        },
+        "add_negotiations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Negotiation"
+          }
+        },
+        "update_negotiations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NegotiationPatch"
+          }
+        },
+        "traces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Trace"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "turn",
+        "rationale",
+        "contract_patch",
+        "add_anchors",
+        "update_anchor_status",
+        "add_sections",
+        "update_sections",
+        "add_voids",
+        "resolve_voids",
+        "add_obstructions",
+        "clear_obstructions",
+        "add_negotiations",
+        "update_negotiations",
+        "traces"
+      ]
+    },
+    "NegotiationDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "negotiation_id": {
+          "type": "string"
+        },
+        "selected_frontier": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tradeoff_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alternatives_preserved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "relaxed_anchors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "negotiation_id",
+        "selected_frontier",
+        "reason",
+        "tradeoff_note",
+        "alternatives_preserved",
+        "relaxed_anchors"
+      ]
+    },
+    "NegotiationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.4"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "projection_style_recommendation": {
+          "$ref": "#/$defs/ProjectionStyle"
+        },
+        "global_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NegotiationDecision"
+          }
+        },
+        "traces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Trace"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "turn",
+        "projection_style_recommendation",
+        "global_reason",
+        "decisions",
+        "traces"
+      ]
+    },
+    "ClaimFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ClaimKind"
+        },
+        "text_intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "warrant": {
+          "$ref": "#/$defs/Warrant"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "licensed_if": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "drop_if_unexposed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "section",
+        "kind",
+        "text_intent",
+        "warrant",
+        "depends_on",
+        "licensed_if",
+        "drop_if_unexposed"
+      ]
+    },
+    "Scar": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "leakage_if_hidden": {
+          "$ref": "#/$defs/LeakageType"
+        },
+        "severity": {
+          "$ref": "#/$defs/Level3"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScarScope"
+        },
+        "operator": {
+          "$ref": "#/$defs/ExposureOperator"
+        },
+        "compressible": {
+          "type": "boolean"
+        },
+        "bundle_key": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "attached_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "leakage_if_hidden",
+        "severity",
+        "scope",
+        "operator",
+        "compressible",
+        "bundle_key",
+        "attached_to"
+      ]
+    },
+    "Withheld": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "item": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recover_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "expose_if_material": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "item",
+        "reason",
+        "recover_when",
+        "expose_if_material"
+      ]
+    },
+    "BodyPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intro_scars": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "close_withheld": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "tradeoff_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "intro_scars",
+        "claims",
+        "close_withheld",
+        "tradeoff_notes"
+      ]
+    },
+    "ProjectionIR": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selected_frontiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "claim_frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClaimFrame"
+          }
+        },
+        "scars": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Scar"
+          }
+        },
+        "withheld": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Withheld"
+          }
+        },
+        "body_plan": {
+          "$ref": "#/$defs/BodyPlan"
+        }
+      },
+      "required": [
+        "selected_frontiers",
+        "claim_frames",
+        "scars",
+        "withheld",
+        "body_plan"
+      ]
+    },
+    "ProjectionOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.4"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "projection_ir": {
+          "$ref": "#/$defs/ProjectionIR"
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "version",
+        "turn",
+        "projection_ir",
+        "answer"
+      ]
+    },
+    "AuditFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/FindingCategory"
+        },
+        "severity": {
+          "$ref": "#/$defs/Level3"
+        },
+        "target_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fix": {
+          "$ref": "#/$defs/FixAction"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "severity",
+        "target_ids",
+        "description",
+        "fix",
+        "status"
+      ]
+    },
+    "AuditResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.4"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FixAction"
+          },
+          "default": []
+        },
+        "projection_style_recommendation": {
+          "$ref": "#/$defs/ProjectionStyle"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditFinding"
+          }
+        },
+        "revised_answer": {
+          "type": "string"
+        },
+        "revised_projection_ir": {
+          "$ref": "#/$defs/ProjectionIR"
+        }
+      },
+      "required": [
+        "version",
+        "turn",
+        "verdict",
+        "summary",
+        "required_actions",
+        "projection_style_recommendation",
+        "findings"
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/provider-mock"
+    },
+    {
+      "path": "./packages/provider-openai-compat"
+    },
+    {
+      "path": "./packages/provider-mistral"
+    },
+    {
+      "path": "./packages/provider-anthropic"
+    },
+    {
+      "path": "./apps/cli"
+    }
+  ]
+}

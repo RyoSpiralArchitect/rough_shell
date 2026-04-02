@@ -1,0 +1,113 @@
+{
+  "version": "v0.5",
+  "turn": 2,
+  "contract": {
+    "audience": "unknown",
+    "stakes": "medium",
+    "factual_strictness": "high",
+    "ambiguity_tolerance": "medium",
+    "exploration_width": "medium",
+    "projection_style": "auto",
+    "budgets": {
+      "answer_tokens": 220,
+      "scar_density_max": 2,
+      "branch_budget": 2,
+      "clarification_budget": 1,
+      "meta_projection_allowed": true
+    }
+  },
+  "anchors": [
+    {
+      "id": "A1",
+      "text": "Do not overstate causality.",
+      "kind": "veto",
+      "priority": "high",
+      "source": "user",
+      "scope": "global",
+      "status": "active",
+      "exposure_policy": "latent"
+    }
+  ],
+  "sections": [
+    {
+      "id": "S1",
+      "label": "High-compression expression",
+      "gist": "Short language can still be information-dense when context carries much of the load.",
+      "warrant": "local_inference",
+      "domain_mode": "factual",
+      "status": "active",
+      "parents": [],
+      "revive_when": [],
+      "projection_signature": {
+        "allowed_claim_set": [
+          "descriptive",
+          "comparative"
+        ],
+        "mandatory_exposures": [],
+        "clarification_needs": [
+          "I1"
+        ],
+        "anchor_touch": [
+          "A1"
+        ],
+        "obstruction_touch": []
+      },
+      "branch_cost": {
+        "cognitive_load": 2,
+        "projection_block_risk": 3,
+        "obstruction_yield": 2,
+        "revive_likelihood": "medium"
+      },
+      "variants": [
+        "V1"
+      ]
+    }
+  ],
+  "voids": [],
+  "obstructions": [],
+  "negotiations": [],
+  "interpretation_openings": [
+    {
+      "id": "I1",
+      "label": "definition_vs_examples",
+      "reading": "The question could be asking for a definition first or for concrete examples first.",
+      "changes_if_selected": "It changes whether the answer should establish a frame before giving instances.",
+      "clarification_prompt": "Should the answer define the space first, or jump straight to examples?",
+      "collapsible_with_one_clarification": true,
+      "status": "open",
+      "competes_with": [],
+      "related_sections": [
+        "S1"
+      ]
+    }
+  ],
+  "rejected_variants": [
+    {
+      "id": "R1",
+      "kind": "section_variant",
+      "label": "narrow confirmation-reading",
+      "summary": "The earlier framing treated short acknowledgment phrases as the main answer shape.",
+      "derived_from": [
+        "S1"
+      ],
+      "rejected_by": "user",
+      "reason": "The user pointed out that these phrases are often low-information signals rather than dense compression.",
+      "superseded_by": [
+        "I1"
+      ],
+      "turn": 2
+    }
+  ],
+  "traces": [
+    {
+      "id": "T1",
+      "action": "reframe",
+      "targets": [
+        "S1",
+        "R1"
+      ],
+      "cause": "The user rejected the earlier narrowing and reopened the interpretive frame.",
+      "turn": 2
+    }
+  ]
+}

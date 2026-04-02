@@ -1,0 +1,35 @@
+{
+  "version": "v0.4",
+  "turn": 0,
+  "contract": {
+    "audience": "unknown",
+    "stakes": "medium",
+    "factual_strictness": "high",
+    "ambiguity_tolerance": "medium",
+    "exploration_width": "medium",
+    "projection_style": "auto",
+    "budgets": {
+      "answer_tokens": 220,
+      "scar_density_max": 2,
+      "branch_budget": 2,
+      "clarification_budget": 1,
+      "meta_projection_allowed": true
+    }
+  },
+  "anchors": [
+    {
+      "id": "A1",
+      "text": "因果を誇張しない",
+      "kind": "veto",
+      "priority": "high",
+      "source": "user",
+      "scope": "global",
+      "status": "active"
+    }
+  ],
+  "sections": [],
+  "voids": [],
+  "obstructions": [],
+  "negotiations": [],
+  "traces": []
+}

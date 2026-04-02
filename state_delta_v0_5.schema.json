@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rough-shell-v0.5-state-delta.json",
+  "title": "rough-shell-v0.5-state-delta",
+  "$ref": "rough_shell_v0_5_common_defs.json#/$defs/StateDelta"
+}

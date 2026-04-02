@@ -1,0 +1,22 @@
+{
+  "name": "rough-shell-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "check": "tsc -b --pretty false",
+    "clean": "rm -rf packages/*/dist apps/*/dist",
+    "cli": "npm run build --silent && node apps/cli/dist/index.js",
+    "cli:mock": "npm run cli -- --provider mock",
+    "cli:mistral": "npm run cli -- --provider mistral --model mistral-large-latest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3"
+  }
+}

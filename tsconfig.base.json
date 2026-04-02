@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2023"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@rough-shell/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@rough-shell/provider-anthropic": [
+        "packages/provider-anthropic/src/index.ts"
+      ],
+      "@rough-shell/provider-mock": [
+        "packages/provider-mock/src/index.ts"
+      ],
+      "@rough-shell/provider-mistral": [
+        "packages/provider-mistral/src/index.ts"
+      ],
+      "@rough-shell/provider-openai-compat": [
+        "packages/provider-openai-compat/src/index.ts"
+      ]
+    }
+  }
+}

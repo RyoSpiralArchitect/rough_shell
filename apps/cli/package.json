@@ -1,0 +1,16 @@
+{
+  "name": "@rough-shell/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "rough-shell-cli": "./dist/index.js"
+  },
+  "dependencies": {
+    "@rough-shell/core": "0.0.0",
+    "@rough-shell/provider-anthropic": "0.0.0",
+    "@rough-shell/provider-mock": "0.0.0",
+    "@rough-shell/provider-mistral": "0.0.0",
+    "@rough-shell/provider-openai-compat": "0.0.0"
+  }
+}
