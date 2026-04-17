@@ -117,6 +117,14 @@ export type RejectedVariantKind =
   | "frontier"
   | "claim_strategy";
 export type RejectedBy = "user" | "system" | "audit" | "inferred";
+export type TermOrigin =
+  | "assistant_coinage"
+  | "user_coinage"
+  | "source_phrase"
+  | "shared_shorthand"
+  | "unknown";
+export type ReferentKind = "speaker" | "term" | "concept" | "section";
+export type ReferentBindingStatus = "tentative" | "active" | "stale";
 
 export interface Budgets {
   answer_tokens: number;
@@ -262,6 +270,29 @@ export interface RejectedVariant {
   turn: number;
 }
 
+export interface TermProvenance {
+  id: string;
+  term: string;
+  origin: TermOrigin;
+  confidence: Level3;
+  evidence: string;
+  first_turn: number;
+  related_sections: string[];
+  related_referents: string[];
+}
+
+export interface ReferentBinding {
+  id: string;
+  surface: string;
+  refers_to: string;
+  kind: ReferentKind;
+  status: ReferentBindingStatus;
+  confidence: Level3;
+  evidence: string;
+  related_sections: string[];
+  related_provenances: string[];
+}
+
 export interface ShellState {
   version: SchemaVersion;
   turn: number;
@@ -273,6 +304,8 @@ export interface ShellState {
   negotiations: Negotiation[];
   interpretation_openings?: InterpretationOpening[];
   rejected_variants?: RejectedVariant[];
+  term_provenances?: TermProvenance[];
+  referent_bindings?: ReferentBinding[];
   traces: Trace[];
 }
 
@@ -308,6 +341,21 @@ export interface VoidResolution {
   reason: string;
 }
 
+export interface VoidPatch {
+  id: string;
+  reason: string;
+  question?: string;
+  effect?: VoidEffect;
+  effect_scope?: EffectScope;
+  coupled_with?: string[];
+  coupling_mode?: CouplingMode;
+  resolution_priority?: Priority;
+  unresolved_blocks?: string[];
+  exposure_required_if_touched?: boolean;
+  status?: VoidStatus;
+  resolution_requires?: string[];
+}
+
 export interface ObstructionClear {
   id: string;
   reason: string;
@@ -329,6 +377,27 @@ export interface InterpretationOpeningPatch {
   related_sections?: string[];
 }
 
+export interface TermProvenancePatch {
+  id: string;
+  reason: string;
+  origin?: TermOrigin;
+  confidence?: Level3;
+  evidence?: string;
+  related_sections?: string[];
+  related_referents?: string[];
+}
+
+export interface ReferentBindingPatch {
+  id: string;
+  reason: string;
+  refers_to?: string;
+  status?: ReferentBindingStatus;
+  confidence?: Level3;
+  evidence?: string;
+  related_sections?: string[];
+  related_provenances?: string[];
+}
+
 export interface StateDelta {
   version: SchemaVersion;
   turn: number;
@@ -342,7 +411,12 @@ export interface StateDelta {
   add_interpretation_openings?: InterpretationOpening[];
   update_interpretation_openings?: InterpretationOpeningPatch[];
   add_rejected_variants?: RejectedVariant[];
+  add_term_provenances?: TermProvenance[];
+  update_term_provenances?: TermProvenancePatch[];
+  add_referent_bindings?: ReferentBinding[];
+  update_referent_bindings?: ReferentBindingPatch[];
   add_voids: Void[];
+  update_voids?: VoidPatch[];
   resolve_voids: VoidResolution[];
   add_obstructions: Obstruction[];
   clear_obstructions: ObstructionClear[];
@@ -535,9 +609,18 @@ export interface ArtifactStore {
   recordFailure?(artifacts: FailedPassArtifacts): Promise<string>;
 }
 
+export interface LastTurnContext {
+  user_turn: string;
+  answer: string;
+  negotiation: NegotiationResult;
+  projection: ProjectionOutput;
+  audit: AuditResult;
+}
+
 export interface RunTurnOptions {
   artifactStore?: ArtifactStore;
   lastAudit?: AuditResult;
+  lastTurn?: LastTurnContext;
   maxCompilerRetries?: number;
   maxValidationAttempts?: number;
   provider: JsonProvider;

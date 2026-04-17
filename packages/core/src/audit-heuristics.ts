@@ -1,4 +1,10 @@
-import type { AuditFinding, AuditResult, ProjectionOutput, ShellState } from "./types.js";
+import type {
+  AuditFinding,
+  AuditResult,
+  LastTurnContext,
+  ProjectionOutput,
+  ShellState,
+} from "./types.js";
 
 const STRONG_ASSERTION_PATTERNS = [
   /に過ぎません/u,
@@ -48,6 +54,38 @@ const CULTURE_GENRE_PATTERNS = [
   /\bgenre\b/i,
 ];
 
+const CLARIFICATION_QUESTION_PATTERNS = [
+  /[?？]\s*$/u,
+  /(?:でしょうか|ですか|ますか|かな)\s*[?？]?$/u,
+  /\b(?:does that mean|would it be fair to say|should|could|would)\b/i,
+];
+
+const SHORT_CONFIRMATION_PATTERNS = [
+  /^(?:はい|そう|了解|わかりました|確かに|もちろん)/u,
+  /^(?:yes|right|okay|sure|fair)/i,
+];
+
+const CLARIFICATION_TOKEN_STOPWORDS = new Set([
+  "a",
+  "an",
+  "could",
+  "do",
+  "if",
+  "is",
+  "me",
+  "of",
+  "or",
+  "please",
+  "prefer",
+  "should",
+  "the",
+  "to",
+  "want",
+  "whether",
+  "would",
+  "you",
+]);
+
 function hasStrongAssertion(answer: string): boolean {
   return STRONG_ASSERTION_PATTERNS.some((pattern) => pattern.test(answer));
 }
@@ -66,6 +104,65 @@ function hasCultureOrGenreSpecificCue(answer: string): boolean {
 
 function hasCausalAnchorMention(answer: string): boolean {
   return /因果|causal/i.test(answer);
+}
+
+function looksLikeClarificationQuestion(answer: string): boolean {
+  return CLARIFICATION_QUESTION_PATTERNS.some((pattern) => pattern.test(answer.trim()));
+}
+
+function looksLikeShortMetaConfirmation(answer: string): boolean {
+  const normalized = answer.trim();
+  return normalized.length <= 80 && SHORT_CONFIRMATION_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function normalizeClarificationToken(token: string): string {
+  const normalized = token.toLowerCase();
+  if (normalized === "definition" || normalized === "define") {
+    return "define";
+  }
+  if (normalized === "examples" || normalized === "example") {
+    return "example";
+  }
+  return normalized;
+}
+
+function clarificationTokens(answer: string): string[] {
+  return [...answer.toLowerCase().matchAll(/\p{L}+/gu)]
+    .map((match) => normalizeClarificationToken(match[0]))
+    .filter((token) => token.length > 1 && !CLARIFICATION_TOKEN_STOPWORDS.has(token));
+}
+
+function clarificationQuestionOverlap(left: string, right: string): number {
+  const leftTokens = new Set(clarificationTokens(left));
+  const rightTokens = new Set(clarificationTokens(right));
+  if (leftTokens.size === 0 || rightTokens.size === 0) {
+    return 0;
+  }
+
+  const overlap = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  const union = new Set([...leftTokens, ...rightTokens]).size;
+  return union === 0 ? 0 : overlap / union;
+}
+
+function isRepeatedClarification(previousAnswer: string, currentAnswer: string): boolean {
+  const previousNormalized = previousAnswer.trim().toLowerCase().replace(/[?？!.!,]/g, "");
+  const currentNormalized = currentAnswer.trim().toLowerCase().replace(/[?？!.!,]/g, "");
+  if (previousNormalized === currentNormalized) {
+    return true;
+  }
+
+  return clarificationQuestionOverlap(previousAnswer, currentAnswer) >= 0.4;
+}
+
+function resolvedInterpretationOpeningIdsThisTurn(state: ShellState, turn: number): string[] {
+  const openingIds = new Set((state.interpretation_openings ?? []).map((opening) => opening.id));
+  const resolvedIds = state.traces.flatMap((trace) =>
+    trace.turn === turn && trace.action === "resolve"
+      ? trace.targets.filter((target) => openingIds.has(target))
+      : [],
+  );
+
+  return [...new Set(resolvedIds)];
 }
 
 function openingText(state: ShellState): string {
@@ -100,6 +197,7 @@ export function applyAuditHeuristics(
   currentState: ShellState,
   projectionOutput: ProjectionOutput,
   audit: AuditResult,
+  lastTurn?: LastTurnContext,
 ): AuditResult {
   const addedFindings: AuditFinding[] = [];
   const answer = projectionOutput.answer;
@@ -107,6 +205,7 @@ export function applyAuditHeuristics(
   const localInferenceClaims = projectionOutput.projection_ir.claim_frames.filter(
     (claim) => claim.warrant === "local_inference",
   );
+  const claimFrames = projectionOutput.projection_ir.claim_frames;
 
   if (
     localInferenceClaims.length > 0 &&
@@ -156,6 +255,7 @@ export function applyAuditHeuristics(
   const liveInterpretationOpenings = (currentState.interpretation_openings ?? []).filter(
     (opening) => opening.status === "open",
   );
+  const resolvedOpeningIds = resolvedInterpretationOpeningIdsThisTurn(currentState, audit.turn);
 
   const narrowingReasons: string[] = [];
 
@@ -207,6 +307,64 @@ export function applyAuditHeuristics(
       severity: "medium",
       target_ids: liveInterpretationOpenings.map((opening) => opening.id),
       description: narrowingReasons.join(" "),
+      fix: "rewrite",
+      status: "open",
+    });
+  }
+
+  if (
+    resolvedOpeningIds.length > 0 &&
+    liveInterpretationOpenings.length === 0 &&
+    claimFrames.length > 0 &&
+    claimFrames.every((claim) => claim.kind === "meta") &&
+    looksLikeShortMetaConfirmation(answer) &&
+    !looksLikeClarificationQuestion(answer) &&
+    !hasOpenFinding(audit, (finding) => finding.category === "scope_coverage")
+  ) {
+    addedFindings.push({
+      id: `F-HEURISTIC-CLARIFICATION-CASHOUT-${audit.turn}`,
+      category: "scope_coverage",
+      severity: "medium",
+      target_ids: resolvedOpeningIds,
+      description:
+        "A clarification or framing choice was resolved this turn, but the answer stops at acknowledging that selection instead of cashing the newly licensed frame out into the underlying answer.",
+      fix: "rewrite",
+      status: "open",
+    });
+  }
+
+  if (
+    audit.projection_style_recommendation === "clarify" &&
+    !looksLikeClarificationQuestion(answer) &&
+    !hasOpenFinding(audit, (finding) => finding.category === "negotiation_fidelity")
+  ) {
+    addedFindings.push({
+      id: `F-HEURISTIC-NEGOTIATION-CLARIFY-${audit.turn}`,
+      category: "negotiation_fidelity",
+      severity: "medium",
+      target_ids: projectionOutput.projection_ir.selected_frontiers,
+      description:
+        "Negotiation still recommended a clarification-shaped response, but the projection answered substantively instead of asking the clarifying question.",
+      fix: "rewrite",
+      status: "open",
+    });
+  }
+
+  if (
+    lastTurn &&
+    lastTurn.audit.projection_style_recommendation === "clarify" &&
+    looksLikeClarificationQuestion(lastTurn.answer) &&
+    looksLikeClarificationQuestion(answer) &&
+    isRepeatedClarification(lastTurn.answer, answer) &&
+    !hasOpenFinding(audit, (finding) => finding.category === "scope_coverage")
+  ) {
+    addedFindings.push({
+      id: `F-HEURISTIC-CLARIFICATION-LOOP-${audit.turn}`,
+      category: "scope_coverage",
+      severity: "medium",
+      target_ids: liveInterpretationOpenings.map((opening) => opening.id),
+      description:
+        "The answer substantially repeats the previous clarification without making thread-level progress, so the conversation remains stalled.",
       fix: "rewrite",
       status: "open",
     });

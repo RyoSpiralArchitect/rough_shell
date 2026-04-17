@@ -98,6 +98,8 @@
       "turn": 2
     }
   ],
+  "term_provenances": [],
+  "referent_bindings": [],
   "traces": [
     {
       "id": "T1",

@@ -8,6 +8,7 @@ import { stdin as input, stdout as output } from "node:process";
 import {
   FileArtifactStore,
   findRepositoryRoot,
+  type LastTurnContext,
   PassValidationRuntimeError,
   RoughShellRuntime,
   SchemaRegistry,
@@ -272,6 +273,8 @@ function summarizeState(state: ShellState): string {
     `negotiations: ${state.negotiations.length}`,
     `openings: ${(state.interpretation_openings ?? []).length}`,
     `rejected: ${(state.rejected_variants ?? []).length}`,
+    `provenances: ${(state.term_provenances ?? []).length}`,
+    `referents: ${(state.referent_bindings ?? []).length}`,
     `traces: ${state.traces.length}`,
   ].join(", ");
 }
@@ -282,9 +285,20 @@ async function runSingleTurn(
   artifactStore: FileArtifactStore,
   state: ShellState,
   userTurn: string,
-): Promise<{ artifactDirectory?: string; answer: string; nextState: ShellState; verdict: string }> {
+  lastTurn?: LastTurnContext,
+): Promise<{
+  artifactDirectory?: string;
+  answer: string;
+  audit: LastTurnContext["audit"];
+  negotiation: LastTurnContext["negotiation"];
+  nextState: ShellState;
+  projection: LastTurnContext["projection"];
+  verdict: string;
+}> {
   const result = await runtime.runTurn({
     artifactStore,
+    ...(lastTurn ? { lastAudit: lastTurn.audit } : {}),
+    ...(lastTurn ? { lastTurn } : {}),
     provider,
     prevState: state,
     userTurn,
@@ -293,7 +307,10 @@ async function runSingleTurn(
   return {
     ...(result.artifactDirectory ? { artifactDirectory: result.artifactDirectory } : {}),
     answer: result.finalAnswer,
+    audit: result.audit,
+    negotiation: result.negotiation,
     nextState: result.state,
+    projection: result.projection,
     verdict: result.audit.verdict,
   };
 }
@@ -338,6 +355,7 @@ async function main(): Promise<void> {
   });
   const provider = createProvider(options);
   let currentState = await loadState(schemaRegistry, options.statePath);
+  let lastTurn: LastTurnContext | undefined;
   let lastArtifactDirectory: string | undefined;
   let pendingTurn:
     | {
@@ -385,9 +403,17 @@ async function main(): Promise<void> {
         artifactStore,
         currentState,
         options.once,
+        lastTurn,
       );
       currentState = result.nextState;
       lastArtifactDirectory = result.artifactDirectory;
+      lastTurn = {
+        answer: result.answer,
+        audit: result.audit,
+        negotiation: result.negotiation,
+        projection: result.projection,
+        user_turn: options.once,
+      };
       pendingTurn = undefined;
       journal.recordTurnSucceeded({
         answer: result.answer,
@@ -466,9 +492,16 @@ async function main(): Promise<void> {
       };
 
       try {
-        const result = await runSingleTurn(runtime, provider, artifactStore, currentState, line);
+        const result = await runSingleTurn(runtime, provider, artifactStore, currentState, line, lastTurn);
         currentState = result.nextState;
         lastArtifactDirectory = result.artifactDirectory;
+        lastTurn = {
+          answer: result.answer,
+          audit: result.audit,
+          negotiation: result.negotiation,
+          projection: result.projection,
+          user_turn: line,
+        };
         pendingTurn = undefined;
         journal.recordTurnSucceeded({
           answer: result.answer,

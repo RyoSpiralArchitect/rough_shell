@@ -10,11 +10,17 @@ import type {
   JsonProvider,
   PassName,
   ProjectionStyle,
+  ReferentBinding,
+  ReferentBindingPatch,
   RejectedVariant,
   SchemaVersion,
+  TermOrigin,
+  TermProvenance,
+  TermProvenancePatch,
   Trace,
   TraceAction,
   Verdict,
+  VoidPatch,
 } from "./types.js";
 
 const TRACE_ACTIONS = new Set<TraceAction>([
@@ -102,6 +108,27 @@ const REJECTED_BY_VALUES = new Set([
   "inferred",
 ]);
 
+const TERM_ORIGINS = new Set<TermOrigin>([
+  "assistant_coinage",
+  "user_coinage",
+  "source_phrase",
+  "shared_shorthand",
+  "unknown",
+]);
+
+const REFERENT_KINDS = new Set([
+  "speaker",
+  "term",
+  "concept",
+  "section",
+]);
+
+const REFERENT_BINDING_STATUSES = new Set([
+  "tentative",
+  "active",
+  "stale",
+]);
+
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -156,6 +183,11 @@ function readProjectionStyle(value: unknown): ProjectionStyle | undefined {
   return style && PROJECTION_STYLES.has(style) ? style : undefined;
 }
 
+function readLevel3(value: unknown): "low" | "medium" | "high" | undefined {
+  const level = readString(value);
+  return level === "low" || level === "medium" || level === "high" ? level : undefined;
+}
+
 function readSchemaVersion(value: unknown): SchemaVersion | undefined {
   const version = readString(value) as SchemaVersion | undefined;
   return version === "v0.5" ? version : undefined;
@@ -201,6 +233,48 @@ function readFixAction(value: unknown): FixAction | undefined {
 function readClaimKind(value: unknown): ClaimKind | undefined {
   const kind = readString(value) as ClaimKind | undefined;
   return kind && CLAIM_KINDS.has(kind) ? kind : undefined;
+}
+
+function readTermOrigin(value: unknown): TermOrigin | undefined {
+  const origin = readString(value) as TermOrigin | undefined;
+  return origin && TERM_ORIGINS.has(origin) ? origin : undefined;
+}
+
+function normalizeTermOrigin(value: unknown): TermOrigin {
+  const exact = readTermOrigin(value);
+  if (exact) {
+    return exact;
+  }
+
+  switch (readString(value)) {
+    case "assistant_created":
+    case "assistant_generated":
+    case "model_coinage":
+    case "system_coinage":
+      return "assistant_coinage";
+    case "user_created":
+    case "user_term":
+      return "user_coinage";
+    case "source":
+    case "quoted":
+    case "citation":
+      return "source_phrase";
+    case "shorthand":
+    case "local_shorthand":
+      return "shared_shorthand";
+    default:
+      return "unknown";
+  }
+}
+
+function readReferentKind(value: unknown): ReferentBinding["kind"] | undefined {
+  const kind = readString(value) as ReferentBinding["kind"] | undefined;
+  return kind && REFERENT_KINDS.has(kind) ? kind : undefined;
+}
+
+function readReferentBindingStatus(value: unknown): ReferentBinding["status"] | undefined {
+  const status = readString(value) as ReferentBinding["status"] | undefined;
+  return status && REFERENT_BINDING_STATUSES.has(status) ? status : undefined;
 }
 
 function normalizeClaimKind(value: unknown): ClaimKind {
@@ -453,6 +527,168 @@ function normalizeRejectedVariant(value: unknown, turn: number, index: number): 
     reason,
     superseded_by: readStringArray(record.superseded_by),
     turn: readNumber(record.turn) ?? turn,
+  };
+}
+
+function normalizeTermProvenance(
+  value: unknown,
+  turn: number,
+  index: number,
+): TermProvenance | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const term = readString(record.term) ?? readString(record.label) ?? readString(record.surface);
+  if (!term) {
+    return undefined;
+  }
+
+  return {
+    id: readString(record.id) ?? `P${index + 1}`,
+    term,
+    origin: normalizeTermOrigin(record.origin ?? record.source_kind ?? record.kind),
+    confidence: readLevel3(record.confidence) ?? "medium",
+    evidence:
+      readString(record.evidence) ??
+      readString(record.reason) ??
+      `The conversation locally tracks the origin of "${term}".`,
+    first_turn: readNumber(record.first_turn) ?? turn,
+    related_sections: readStringArray(record.related_sections ?? record.sections),
+    related_referents: readStringArray(record.related_referents ?? record.referents),
+  };
+}
+
+function normalizeTermProvenancePatch(value: unknown): TermProvenancePatch | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const id = readString(record.id);
+  const reason = readString(record.reason) ?? readString(record.note);
+  if (!id || !reason) {
+    return undefined;
+  }
+
+  const rawOrigin = readString(record.origin);
+  const origin = rawOrigin ? normalizeTermOrigin(rawOrigin) : undefined;
+  const confidence = readLevel3(record.confidence);
+  const evidence = readString(record.evidence);
+  const relatedSections = readStringArray(record.related_sections ?? record.sections);
+  const relatedReferents = readStringArray(record.related_referents ?? record.referents);
+
+  return {
+    id,
+    reason,
+    ...(origin ? { origin } : {}),
+    ...(confidence ? { confidence } : {}),
+    ...(evidence ? { evidence } : {}),
+    ...(relatedSections.length > 0 ? { related_sections: relatedSections } : {}),
+    ...(relatedReferents.length > 0 ? { related_referents: relatedReferents } : {}),
+  };
+}
+
+function normalizeReferentBinding(
+  value: unknown,
+  index: number,
+): ReferentBinding | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const surface = readString(record.surface) ?? readString(record.label) ?? readString(record.term);
+  const refersTo = readString(record.refers_to) ?? readString(record.referent) ?? readString(record.target);
+  if (!surface || !refersTo) {
+    return undefined;
+  }
+
+  return {
+    id: readString(record.id) ?? `RF${index + 1}`,
+    surface,
+    refers_to: refersTo,
+    kind: readReferentKind(record.kind) ?? "concept",
+    status: readReferentBindingStatus(record.status) ?? "active",
+    confidence: readLevel3(record.confidence) ?? "medium",
+    evidence:
+      readString(record.evidence) ??
+      readString(record.reason) ??
+      `The conversation locally binds "${surface}" to a stable referent.`,
+    related_sections: readStringArray(record.related_sections ?? record.sections),
+    related_provenances: readStringArray(record.related_provenances ?? record.provenances),
+  };
+}
+
+function normalizeReferentBindingPatch(value: unknown): ReferentBindingPatch | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const id = readString(record.id);
+  const reason = readString(record.reason) ?? readString(record.note);
+  if (!id || !reason) {
+    return undefined;
+  }
+
+  const refersTo = readString(record.refers_to) ?? readString(record.referent) ?? readString(record.target);
+  const status = readReferentBindingStatus(record.status);
+  const confidence = readLevel3(record.confidence);
+  const evidence = readString(record.evidence);
+  const relatedSections = readStringArray(record.related_sections ?? record.sections);
+  const relatedProvenances = readStringArray(record.related_provenances ?? record.provenances);
+
+  return {
+    id,
+    reason,
+    ...(refersTo ? { refers_to: refersTo } : {}),
+    ...(status ? { status } : {}),
+    ...(confidence ? { confidence } : {}),
+    ...(evidence ? { evidence } : {}),
+    ...(relatedSections.length > 0 ? { related_sections: relatedSections } : {}),
+    ...(relatedProvenances.length > 0 ? { related_provenances: relatedProvenances } : {}),
+  };
+}
+
+function normalizeVoidPatch(value: unknown): VoidPatch | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const id = readString(record.id);
+  const reason = readString(record.reason) ?? readString(record.note);
+  if (!id || !reason) {
+    return undefined;
+  }
+
+  const question = readString(record.question);
+  const effect = readString(record.effect) as VoidPatch["effect"] | undefined;
+  const effectScope = readString(record.effect_scope) as VoidPatch["effect_scope"] | undefined;
+  const couplingMode = readString(record.coupling_mode) as VoidPatch["coupling_mode"] | undefined;
+  const resolutionPriority = readString(record.resolution_priority) as VoidPatch["resolution_priority"] | undefined;
+  const status = readString(record.status) as VoidPatch["status"] | undefined;
+  const coupledWith = readStringArray(record.coupled_with);
+  const unresolvedBlocks = readStringArray(record.unresolved_blocks);
+  const resolutionRequires = readStringArray(record.resolution_requires);
+
+  return {
+    id,
+    reason,
+    ...(question ? { question } : {}),
+    ...(effect ? { effect } : {}),
+    ...(effectScope ? { effect_scope: effectScope } : {}),
+    ...(coupledWith.length > 0 ? { coupled_with: coupledWith } : {}),
+    ...(couplingMode ? { coupling_mode: couplingMode } : {}),
+    ...(resolutionPriority ? { resolution_priority: resolutionPriority } : {}),
+    ...(unresolvedBlocks.length > 0 ? { unresolved_blocks: unresolvedBlocks } : {}),
+    ...(typeof record.exposure_required_if_touched === "boolean"
+      ? { exposure_required_if_touched: record.exposure_required_if_touched }
+      : {}),
+    ...(status ? { status } : {}),
+    ...(resolutionRequires.length > 0 ? { resolution_requires: resolutionRequires } : {}),
   };
 }
 
@@ -862,9 +1098,46 @@ function normalizeStateUpdaterResponse(
                   .map((entry, index) => normalizeRejectedVariant(entry, turn, index))
                   .filter((entry): entry is RejectedVariant => entry !== undefined)
               : [],
+          add_term_provenances: Array.isArray(record.add_term_provenances)
+            ? record.add_term_provenances
+                .map((entry, index) => normalizeTermProvenance(entry, turn, index))
+                .filter((entry): entry is TermProvenance => entry !== undefined)
+            : Array.isArray(record.term_provenances)
+              ? record.term_provenances
+                  .map((entry, index) => normalizeTermProvenance(entry, turn, index))
+                  .filter((entry): entry is TermProvenance => entry !== undefined)
+              : [],
+          update_term_provenances: Array.isArray(record.update_term_provenances)
+            ? record.update_term_provenances
+                .map((entry) => normalizeTermProvenancePatch(entry))
+                .filter((entry): entry is TermProvenancePatch => entry !== undefined)
+            : [],
+          add_referent_bindings: Array.isArray(record.add_referent_bindings)
+            ? record.add_referent_bindings
+                .map((entry, index) => normalizeReferentBinding(entry, index))
+                .filter((entry): entry is ReferentBinding => entry !== undefined)
+            : Array.isArray(record.referent_bindings)
+              ? record.referent_bindings
+                  .map((entry, index) => normalizeReferentBinding(entry, index))
+                  .filter((entry): entry is ReferentBinding => entry !== undefined)
+              : [],
+          update_referent_bindings: Array.isArray(record.update_referent_bindings)
+            ? record.update_referent_bindings
+                .map((entry) => normalizeReferentBindingPatch(entry))
+                .filter((entry): entry is ReferentBindingPatch => entry !== undefined)
+            : [],
         }
       : {}),
     add_voids: Array.isArray(record.add_voids) ? record.add_voids : [],
+    ...(schemaVersion === "v0.5"
+      ? {
+          update_voids: Array.isArray(record.update_voids)
+            ? record.update_voids
+                .map((entry) => normalizeVoidPatch(entry))
+                .filter((entry): entry is VoidPatch => entry !== undefined)
+            : [],
+        }
+      : {}),
     resolve_voids: Array.isArray(record.resolve_voids) ? record.resolve_voids : [],
     add_obstructions: Array.isArray(record.add_obstructions) ? record.add_obstructions : [],
     clear_obstructions: Array.isArray(record.clear_obstructions) ? record.clear_obstructions : [],
@@ -1001,7 +1274,7 @@ export function normalizeProviderResponse(
   rawResponse: unknown,
   input: Record<string, unknown>,
 ): unknown {
-  if (provider.name !== "mistral") {
+  if (provider.name !== "mistral" && provider.name !== "openai-compat") {
     return rawResponse;
   }
 

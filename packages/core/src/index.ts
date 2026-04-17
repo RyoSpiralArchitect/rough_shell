@@ -4,8 +4,8 @@ export {
   SchemaRegistry,
   SchemaValidationError,
 } from "./schema-registry.js";
+export { applyStateDelta } from "./runtime-state.js";
 export {
-  applyStateDelta,
   PassValidationRuntimeError,
   RoughShellRuntime,
 } from "./runtime.js";

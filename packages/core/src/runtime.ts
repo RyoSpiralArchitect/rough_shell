@@ -4,6 +4,11 @@ import { normalizeProviderResponse } from "./provider-normalization.js";
 import { appendPromptSupplement } from "./prompt-supplements.js";
 import { loadPromptSet, renderUserPrompt } from "./prompts.js";
 import { appendProviderHint } from "./provider-hints.js";
+import { applyNegotiationResult, applyStateDelta } from "./runtime-state.js";
+import {
+  isNonFactualDomainMode,
+  postProcessStateDelta,
+} from "./runtime-state-delta.js";
 import { SchemaValidationError, SchemaRegistry } from "./schema-registry.js";
 import type {
   Anchor,
@@ -17,11 +22,15 @@ import type {
   NegotiationResult,
   Obstruction,
   ObstructionClear,
+  LastTurnContext,
   PassLog,
   PassName,
+  ProjectionSignature,
   ProjectionStyle,
   ProjectionOutput,
   PromptSet,
+  ReferentBinding,
+  ReferentBindingPatch,
   RejectedVariant,
   RunTurnOptions,
   RunTurnResult,
@@ -31,9 +40,12 @@ import type {
   SectionPatch,
   ShellState,
   StateDelta,
+  TermProvenance,
+  TermProvenancePatch,
   Trace,
   TurnArtifacts,
   Void,
+  VoidPatch,
   VoidResolution,
   ArtifactStore,
   FailedPassArtifacts,
@@ -46,130 +58,6 @@ function stableJson(value: unknown): string {
 
 function cloneState<T>(value: T): T {
   return structuredClone(value);
-}
-
-function appendUniqueById<T extends { id: string }>(
-  current: T[],
-  additions: T[],
-  label: string,
-): T[] {
-  const seen = new Set(current.map((item) => item.id));
-  const result = [...current];
-
-  for (const addition of additions) {
-    if (seen.has(addition.id)) {
-      throw new Error(`Duplicate ${label} id "${addition.id}" encountered during delta apply.`);
-    }
-
-    seen.add(addition.id);
-    result.push(addition);
-  }
-
-  return result;
-}
-
-function mergeById<T extends { id: string }, P extends Partial<T> & { id: string }>(
-  current: T[],
-  patches: P[],
-): T[] {
-  if (patches.length === 0) {
-    return current;
-  }
-
-  const patchMap = new Map(patches.map((patch) => [patch.id, patch]));
-
-  return current.map((item) => {
-    const patch = patchMap.get(item.id);
-    if (!patch) {
-      return item;
-    }
-
-    return {
-      ...item,
-      ...patch,
-    };
-  });
-}
-
-function applyContractPatch(contract: Contract, patch: ContractPatch): Contract {
-  const mergedBudgets = patch.budgets
-    ? {
-        ...contract.budgets,
-        ...patch.budgets,
-      }
-    : contract.budgets;
-
-  return {
-    ...contract,
-    ...patch,
-    budgets: mergedBudgets,
-  };
-}
-
-function resolveVoids(voids: Void[], resolutions: VoidResolution[]): Void[] {
-  const resolutionIds = new Set(resolutions.map((resolution) => resolution.id));
-
-  return voids.map((entry) =>
-    resolutionIds.has(entry.id)
-      ? {
-          ...entry,
-          status: "resolved",
-        }
-      : entry,
-  );
-}
-
-function clearObstructions(obstructions: Obstruction[], clears: ObstructionClear[]): Obstruction[] {
-  const clearIds = new Set(clears.map((clear) => clear.id));
-
-  return obstructions.map((entry) =>
-    clearIds.has(entry.id)
-      ? {
-          ...entry,
-          status: "cleared",
-        }
-      : entry,
-  );
-}
-
-function applyNegotiationPatches(
-  negotiations: Negotiation[],
-  patches: NegotiationPatch[],
-): Negotiation[] {
-  return mergeById(negotiations, patches);
-}
-
-function applyNegotiationResult(
-  state: ShellState,
-  negotiationResult: NegotiationResult,
-): ShellState {
-  if (negotiationResult.decisions.length === 0 && negotiationResult.traces.length === 0) {
-    return state;
-  }
-
-  const decisionMap = new Map(
-    negotiationResult.decisions.map((decision) => [decision.negotiation_id, decision]),
-  );
-
-  const negotiations = state.negotiations.map((negotiation) => {
-    const decision = decisionMap.get(negotiation.id);
-    if (!decision) {
-      return negotiation;
-    }
-
-    return {
-      ...negotiation,
-      selected: decision.selected_frontier,
-      reason: decision.reason,
-      alternatives_preserved: decision.alternatives_preserved,
-    };
-  });
-
-  return {
-    ...state,
-    negotiations,
-    traces: [...state.traces, ...negotiationResult.traces],
-  };
 }
 
 function appendPromptAppendix(userPrompt: string, appendix: string | undefined): string {
@@ -185,6 +73,17 @@ function getRecentRejectedVariants(state: ShellState, limit = 3): RejectedVarian
   return variants.slice(Math.max(0, variants.length - limit));
 }
 
+function getRecentTermProvenances(state: ShellState, limit = 4): TermProvenance[] {
+  const provenances = state.term_provenances ?? [];
+  return provenances.slice(Math.max(0, provenances.length - limit));
+}
+
+function getActiveReferentBindings(state: ShellState, limit = 4): ReferentBinding[] {
+  return (state.referent_bindings ?? [])
+    .filter((binding) => binding.status === "active" || binding.status === "tentative")
+    .slice(0, limit);
+}
+
 function formatOpeningSummary(opening: InterpretationOpening): string {
   return `${opening.id} (${opening.label}): ${opening.reading} Changes if selected: ${opening.changes_if_selected} One clarification collapses it: ${opening.collapsible_with_one_clarification ? "yes" : "no"}.`;
 }
@@ -193,12 +92,12 @@ function formatRejectedVariantSummary(variant: RejectedVariant): string {
   return `${variant.id} (${variant.label}, rejected_by=${variant.rejected_by}): ${variant.summary} Reason: ${variant.reason}.`;
 }
 
-function isNonFactualDomainMode(domainMode: Section["domain_mode"] | undefined): boolean {
-  return (
-    domainMode === "hypothetical" ||
-    domainMode === "fictional" ||
-    domainMode === "symbolic"
-  );
+function formatTermProvenanceSummary(provenance: TermProvenance): string {
+  return `${provenance.id} (${provenance.term}, origin=${provenance.origin}, confidence=${provenance.confidence}): ${provenance.evidence}`;
+}
+
+function formatReferentBindingSummary(binding: ReferentBinding): string {
+  return `${binding.id} (${binding.surface} -> ${binding.refers_to}, kind=${binding.kind}, status=${binding.status}, confidence=${binding.confidence}): ${binding.evidence}`;
 }
 
 function getActiveNonFactualSections(state: ShellState): Section[] {
@@ -224,6 +123,8 @@ function buildPassContextAppendix(
 
   const liveOpenings = getLiveInterpretationOpenings(state).slice(0, 4);
   const rejectedVariants = getRecentRejectedVariants(state);
+  const recentTermProvenances = getRecentTermProvenances(state);
+  const activeReferentBindings = getActiveReferentBindings(state);
   const activeNonFactualSections = getActiveNonFactualSections(state).slice(0, 4);
   const lines: string[] = ["V0_5_RUNTIME_CONTEXT:"];
 
@@ -241,6 +142,20 @@ function buildPassContextAppendix(
     }
   }
 
+  if (recentTermProvenances.length > 0) {
+    lines.push("RECENT_TERM_PROVENANCES:");
+    for (const provenance of recentTermProvenances) {
+      lines.push(`- ${formatTermProvenanceSummary(provenance)}`);
+    }
+  }
+
+  if (activeReferentBindings.length > 0) {
+    lines.push("ACTIVE_REFERENT_BINDINGS:");
+    for (const binding of activeReferentBindings) {
+      lines.push(`- ${formatReferentBindingSummary(binding)}`);
+    }
+  }
+
   if (activeNonFactualSections.length > 0) {
     lines.push("ACTIVE_NON_FACTUAL_SECTIONS:");
     for (const section of activeNonFactualSections) {
@@ -255,7 +170,19 @@ function buildPassContextAppendix(
         "- Treat interpretive ambiguity as first-class state. Use add_voids for missing facts/referents and add_interpretation_openings for materially different readings.",
       );
       lines.push(
+        "- Use term_provenances for conversation-local coined labels or phrases whose origin matters later, and referent_bindings for handles like 'system', 'that term', or omitted Japanese subjects.",
+      );
+      lines.push(
         "- If the user corrects or displaces a prior framing, preserve the displaced framing in add_rejected_variants and prefer a reframe trace.",
+      );
+      lines.push(
+        "- If a dependency is already tracked as a void, prefer updating or reopening that same void instead of creating a duplicate with a new id.",
+      );
+      lines.push(
+        "- If the user asks what kind of examples or what a just-mentioned option means, treat that as repair on the assistant's immediately prior option rather than as a request to repeat the same clarification.",
+      );
+      lines.push(
+        "- If the user says either is fine or delegates the choice back, collapse that clarification opening so the next answer can proceed.",
       );
       if (activeNonFactualSections.length > 0) {
         lines.push(
@@ -310,6 +237,9 @@ function buildPassContextAppendix(
       lines.push(
         "- Check whether the answer silently selected one live reading, jumped to examples before framing, or revived a rejected variant.",
       );
+      lines.push(
+        "- If the answer substantially repeats the previous turn's clarification without new thread-level progress, that should not pass.",
+      );
       if (activeNonFactualSections.length > 0) {
         lines.push(
           "- In non-factual sections, do not treat the absence of an external referent as a factual insufficiency by itself.",
@@ -350,313 +280,6 @@ function chooseInterpretationProjectionStyle(state: ShellState): ProjectionStyle
   return state.contract.budgets.meta_projection_allowed ? "meta" : undefined;
 }
 
-const PREMISE_PUSHBACK_PATTERNS = [
-  /前提/u,
-  /assumption/i,
-  /premise/i,
-  /依存して(?:いる|る)?/u,
-  /どこから/u,
-  /とも限らない/u,
-  /ではなく/u,
-  /じゃなく/u,
-  /押し返/u,
-];
-
-const HIDDEN_PREMISE_PATTERNS = [
-  /hidden assumption/i,
-  /hidden premise/i,
-  /前提/u,
-  /assumes?/i,
-  /smuggle/i,
-  /special premise/i,
-  /added complexity/i,
-  /addition(?:s)? to the system/i,
-  /arrives? as an addition/i,
-  /tracking accretion/i,
-  /複雑.*追加/u,
-  /系への付け足し/u,
-  /付け加わ/u,
-];
-
-function matchesAnyPattern(text: string, patterns: RegExp[]): boolean {
-  return patterns.some((pattern) => pattern.test(text));
-}
-
-function hasPremisePushback(text: string): boolean {
-  return matchesAnyPattern(text, PREMISE_PUSHBACK_PATTERNS);
-}
-
-function hasHiddenPremiseLanguage(text: string): boolean {
-  return matchesAnyPattern(text, HIDDEN_PREMISE_PATTERNS);
-}
-
-function summarizeRejectedFrame(text: string): string {
-  const normalized = text.trim().replace(/\s+/g, " ");
-  return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized;
-}
-
-function nextRejectedVariantId(prevState: ShellState, delta: StateDelta): string {
-  const ids = [
-    ...(prevState.rejected_variants ?? []).map((variant) => variant.id),
-    ...((delta.add_rejected_variants ?? []).map((variant) => variant.id) ?? []),
-  ];
-  const maxNumeric = ids.reduce((max, id) => {
-    const match = /^R(\d+)$/.exec(id);
-    if (!match) {
-      return max;
-    }
-
-    const value = Number(match[1]);
-    return Number.isFinite(value) ? Math.max(max, value) : max;
-  }, 0);
-
-  return `R${maxNumeric + 1}`;
-}
-
-function collectHiddenPremiseSectionIds(prevState: ShellState, delta: StateDelta): string[] {
-  const touchedIds = new Set<string>();
-
-  for (const section of delta.add_sections) {
-    const sectionText = [
-      section.label,
-      section.gist,
-      ...section.projection_signature.mandatory_exposures,
-    ].join(" ");
-    if (hasHiddenPremiseLanguage(sectionText)) {
-      touchedIds.add(section.id);
-    }
-  }
-
-  for (const patch of delta.update_sections) {
-    const baseSection = prevState.sections.find((section) => section.id === patch.id);
-    const patchText = [
-      patch.label,
-      patch.gist,
-      ...(patch.projection_signature?.mandatory_exposures ?? []),
-      baseSection?.label,
-      baseSection?.gist,
-      ...(baseSection?.projection_signature.mandatory_exposures ?? []),
-    ]
-      .filter((value): value is string => typeof value === "string")
-      .join(" ");
-
-    if (hasHiddenPremiseLanguage(patchText)) {
-      touchedIds.add(patch.id);
-    }
-  }
-
-  if (touchedIds.size > 0) {
-    return [...touchedIds];
-  }
-
-  return prevState.sections
-    .filter((section) => {
-      const sectionText = [
-        section.label,
-        section.gist,
-        ...section.projection_signature.mandatory_exposures,
-      ].join(" ");
-      return hasHiddenPremiseLanguage(sectionText);
-    })
-    .map((section) => section.id)
-    .slice(-2);
-}
-
-function stateAlreadyCarriesHiddenPremiseDispute(prevState: ShellState): boolean {
-  const recentTraceCauses = prevState.traces.slice(-6).map((trace) => trace.cause).join(" ");
-  const sectionText = prevState.sections
-    .map((section) => [section.label, section.gist, ...section.projection_signature.mandatory_exposures].join(" "))
-    .join(" ");
-
-  return hasHiddenPremiseLanguage(`${recentTraceCauses} ${sectionText}`);
-}
-
-function promoteRepeatedPremisePushbackToRejectedVariant(
-  prevState: ShellState,
-  userTurn: string,
-  delta: StateDelta,
-): StateDelta {
-  if (delta.version !== "v0.5") {
-    return delta;
-  }
-
-  if (!hasPremisePushback(userTurn)) {
-    return delta;
-  }
-
-  if (!stateAlreadyCarriesHiddenPremiseDispute(prevState)) {
-    return delta;
-  }
-
-  const existingRejectedVariant = [...(prevState.rejected_variants ?? []), ...(delta.add_rejected_variants ?? [])]
-    .some((variant) => hasHiddenPremiseLanguage([variant.label, variant.summary, variant.reason].join(" ")));
-  if (existingRejectedVariant) {
-    return delta;
-  }
-
-  const derivedFrom = collectHiddenPremiseSectionIds(prevState, delta);
-  if (derivedFrom.length === 0) {
-    return delta;
-  }
-
-  const primarySection = prevState.sections.find((section) => section.id === derivedFrom[0]);
-  const summarySource = primarySection?.gist ?? "A prior framing kept resurfacing a hidden premise instead of leaving it as critique residue.";
-  const rejectedVariantId = nextRejectedVariantId(prevState, delta);
-  const rejectedVariant: RejectedVariant = {
-    id: rejectedVariantId,
-    kind: "interpretation_frame",
-    label: "hidden-premise-frame",
-    summary: summarizeRejectedFrame(summarySource),
-    derived_from: derivedFrom,
-    rejected_by: "user",
-    reason:
-      "The user pushed back again on a hidden premise already present in state, so this framing should remain as rejected residue instead of resurfacing as the active lens.",
-    superseded_by: (delta.add_interpretation_openings ?? []).map((opening) => opening.id),
-    turn: delta.turn,
-  };
-  const heuristicTrace: Trace = {
-    id: `T-REJECT-HIDDEN-PREMISE-${delta.turn}`,
-    action: "reframe",
-    targets: [...derivedFrom, rejectedVariantId],
-    cause:
-      "Repeated user pushback on a hidden premise promoted that framing into rejected residue rather than leaving it as an implicitly reusable live frame.",
-    turn: delta.turn,
-  };
-
-  return {
-    ...delta,
-    add_rejected_variants: [...(delta.add_rejected_variants ?? []), rejectedVariant],
-    traces: delta.traces.some((trace) => trace.id === heuristicTrace.id)
-      ? delta.traces
-      : [...delta.traces, heuristicTrace],
-  };
-}
-
-function getSectionPatchMap(delta: StateDelta): Map<string, SectionPatch> {
-  return new Map(delta.update_sections.map((patch) => [patch.id, patch]));
-}
-
-function hasActiveNonFactualSectionAfterDelta(prevState: ShellState, delta: StateDelta): boolean {
-  if (
-    delta.add_sections.some(
-      (section) => section.status === "active" && isNonFactualDomainMode(section.domain_mode),
-    )
-  ) {
-    return true;
-  }
-
-  const patchMap = getSectionPatchMap(delta);
-  return prevState.sections.some((section) => {
-    const patch = patchMap.get(section.id);
-    const nextStatus = patch?.status ?? section.status;
-    const nextDomainMode = patch?.domain_mode ?? section.domain_mode;
-    return nextStatus === "active" && isNonFactualDomainMode(nextDomainMode);
-  });
-}
-
-function isCreativeDomainContentVoid(entry: Void): boolean {
-  const normalizedBlocks = entry.unresolved_blocks.map((block) => block.trim().toLowerCase());
-  if (normalizedBlocks.length === 0) {
-    return false;
-  }
-
-  return normalizedBlocks.every(
-    (block) =>
-      block === "content generation" ||
-      block === "content claims" ||
-      block === "generated content",
-  );
-}
-
-function suppressCreativeDomainContentVoids(prevState: ShellState, delta: StateDelta): StateDelta {
-  if (delta.version !== "v0.5" || !hasActiveNonFactualSectionAfterDelta(prevState, delta)) {
-    return delta;
-  }
-
-  const nextVoids = delta.add_voids.filter((entry) => !isCreativeDomainContentVoid(entry));
-  if (nextVoids.length === delta.add_voids.length) {
-    return delta;
-  }
-
-  return {
-    ...delta,
-    add_voids: nextVoids,
-  };
-}
-
-export function applyStateDelta(prevState: ShellState, delta: StateDelta): ShellState {
-  const nextState = cloneState(prevState);
-
-  nextState.turn = delta.turn;
-  nextState.version = delta.version;
-  nextState.contract = applyContractPatch(nextState.contract, delta.contract_patch);
-  nextState.anchors = appendUniqueById(nextState.anchors, delta.add_anchors, "anchor");
-  nextState.anchors = nextState.anchors.map((anchor) => {
-    const update = delta.update_anchor_status.find((entry) => entry.id === anchor.id);
-    const exposureUpdate = (delta.update_anchor_exposure ?? []).find(
-      (entry) => entry.id === anchor.id,
-    );
-    return update
-      ? {
-          ...anchor,
-          status: update.status,
-          ...(exposureUpdate ? { exposure_policy: exposureUpdate.exposure_policy } : {}),
-        }
-      : exposureUpdate
-        ? {
-            ...anchor,
-            exposure_policy: exposureUpdate.exposure_policy,
-          }
-        : anchor;
-  });
-  nextState.sections = appendUniqueById(nextState.sections, delta.add_sections, "section");
-  nextState.sections = mergeById<Section, SectionPatch>(nextState.sections, delta.update_sections);
-  nextState.interpretation_openings = appendUniqueById(
-    nextState.interpretation_openings ?? [],
-    delta.add_interpretation_openings ?? [],
-    "interpretation opening",
-  );
-  nextState.interpretation_openings = nextState.interpretation_openings.map((opening) => {
-    const patch = (delta.update_interpretation_openings ?? []).find(
-      (entry) => entry.id === opening.id,
-    );
-    if (!patch) {
-      return opening;
-    }
-
-    const { reason: _reason, ...openingPatch } = patch;
-    return {
-      ...opening,
-      ...openingPatch,
-    };
-  });
-  nextState.rejected_variants = appendUniqueById(
-    nextState.rejected_variants ?? [],
-    delta.add_rejected_variants ?? [],
-    "rejected variant",
-  );
-  nextState.voids = appendUniqueById(nextState.voids, delta.add_voids, "void");
-  nextState.voids = resolveVoids(nextState.voids, delta.resolve_voids);
-  nextState.obstructions = appendUniqueById(
-    nextState.obstructions,
-    delta.add_obstructions,
-    "obstruction",
-  );
-  nextState.obstructions = clearObstructions(nextState.obstructions, delta.clear_obstructions);
-  nextState.negotiations = appendUniqueById(
-    nextState.negotiations,
-    delta.add_negotiations,
-    "negotiation",
-  );
-  nextState.negotiations = applyNegotiationPatches(
-    nextState.negotiations,
-    delta.update_negotiations,
-  );
-  nextState.traces = [...nextState.traces, ...delta.traces];
-
-  return nextState;
-}
-
 interface PassExecution<T> {
   log: PassLog;
   value: T;
@@ -679,7 +302,33 @@ interface FailureContext {
 }
 
 function buildCompilerRetryUserPrompt(basePrompt: string, audit: AuditResult): string {
-  return `${basePrompt}\n\nLAST_AUDIT_JSON:\n${stableJson(audit)}`;
+  const retryNotes: string[] = [];
+  if (
+    audit.findings.some((finding) => finding.id.startsWith("F-HEURISTIC-CLARIFICATION-CASHOUT-"))
+  ) {
+    retryNotes.push(
+      "- LAST_AUDIT says the previous answer only acknowledged a newly resolved framing choice. On retry, use that now-licensed frame to answer the user's underlying question in the same turn.",
+    );
+  }
+  if (
+    audit.projection_style_recommendation === "clarify" &&
+    audit.findings.some((finding) => finding.category === "negotiation_fidelity")
+  ) {
+    retryNotes.push(
+      "- LAST_AUDIT says the previous answer responded substantively even though clarification was still the recommended style. On retry, ask the clarifying question directly instead of answering through it.",
+    );
+  }
+  if (
+    audit.findings.some((finding) => finding.id.startsWith("F-HEURISTIC-CLARIFICATION-LOOP-"))
+  ) {
+    retryNotes.push(
+      "- LAST_AUDIT says the previous answer substantially repeated an earlier clarification. On retry, do not ask the same clarification again; if no live opening still blocks projection, cash the answer out directly.",
+    );
+  }
+
+  return retryNotes.length > 0
+    ? `${basePrompt}\n\nCOMPILER_RETRY_NOTES:\n${retryNotes.join("\n")}\n\nLAST_AUDIT_JSON:\n${stableJson(audit)}`
+    : `${basePrompt}\n\nLAST_AUDIT_JSON:\n${stableJson(audit)}`;
 }
 
 export class PassValidationRuntimeError
@@ -745,6 +394,7 @@ export class RoughShellRuntime {
       options.userTurn,
       options.sourceSnippets,
       options.lastAudit,
+      options.lastTurn,
     );
     const stateDeltaExecution = await this.executePass<StateDelta>(
       options.provider,
@@ -761,6 +411,7 @@ export class RoughShellRuntime {
       stateBefore,
       options.userTurn,
       stateDeltaExecution,
+      options.lastTurn,
     );
     passLogs.push(postProcessedStateDeltaExecution.log);
 
@@ -825,6 +476,7 @@ export class RoughShellRuntime {
       stateAfterDelta,
       projectionExecution.value,
       auditExecution,
+      options.lastTurn,
     );
     passLogs.push(auditExecution.log);
 
@@ -867,6 +519,7 @@ export class RoughShellRuntime {
         stateAfterDelta,
         projectionExecution.value,
         auditExecution,
+        options.lastTurn,
       );
       passLogs.push(auditExecution.log);
     }
@@ -927,11 +580,9 @@ export class RoughShellRuntime {
     prevState: ShellState,
     userTurn: string,
     execution: PassExecution<StateDelta>,
+    lastTurn?: LastTurnContext,
   ): PassExecution<StateDelta> {
-    const nextValue = suppressCreativeDomainContentVoids(
-      prevState,
-      promoteRepeatedPremisePushbackToRejectedVariant(prevState, userTurn, execution.value),
-    );
+    const nextValue = postProcessStateDelta(prevState, userTurn, execution.value, lastTurn);
     return nextValue === execution.value
       ? execution
       : {
@@ -1103,8 +754,9 @@ export class RoughShellRuntime {
     currentState: ShellState,
     projectionOutput: ProjectionOutput,
     execution: PassExecution<AuditResult>,
+    lastTurn?: LastTurnContext,
   ): PassExecution<AuditResult> {
-    const nextValue = applyAuditHeuristics(currentState, projectionOutput, execution.value);
+    const nextValue = applyAuditHeuristics(currentState, projectionOutput, execution.value, lastTurn);
     return nextValue === execution.value
       ? execution
       : {
@@ -1121,8 +773,45 @@ export class RoughShellRuntime {
     currentState: ShellState,
     execution: PassExecution<NegotiationResult>,
   ): PassExecution<NegotiationResult> {
-    const suggestedStyle = chooseInterpretationProjectionStyle(currentState);
     const liveOpenings = getLiveInterpretationOpenings(currentState);
+    const hasUnresolvedDependency =
+      currentState.voids.some((entry) => entry.status !== "resolved") ||
+      currentState.obstructions.length > 0;
+
+    if (
+      currentState.version === "v0.5" &&
+      liveOpenings.length === 0 &&
+      execution.value.decisions.length === 0 &&
+      execution.value.projection_style_recommendation === "clarify" &&
+      !hasUnresolvedDependency
+    ) {
+      const reason =
+        "No live interpretation openings or unresolved blocking dependencies remain, so clarification is no longer the licensed projection style.";
+      const heuristicTrace: Trace = {
+        id: `T-NEGOTIATION-CLARIFY-RESET-${execution.value.turn}`,
+        action: "negotiate",
+        targets: [],
+        cause: reason,
+        turn: execution.value.turn,
+      };
+      const nextValue: NegotiationResult = {
+        ...execution.value,
+        projection_style_recommendation: "single",
+        global_reason: `${execution.value.global_reason} ${reason}`.trim(),
+        traces: [...execution.value.traces, heuristicTrace],
+      };
+
+      return {
+        ...execution,
+        log: {
+          ...execution.log,
+          validatedResponse: nextValue,
+        },
+        value: nextValue,
+      };
+    }
+
+    const suggestedStyle = chooseInterpretationProjectionStyle(currentState);
 
     if (
       currentState.version !== "v0.5" ||
@@ -1172,6 +861,7 @@ export class RoughShellRuntime {
     userTurn: string,
     sourceSnippets?: unknown,
     lastAudit?: AuditResult,
+    lastTurn?: LastTurnContext,
   ): PreparedPass {
     const template = this.prompts.state_updater;
     const schemaVersion = prevState.version;
@@ -1179,6 +869,7 @@ export class RoughShellRuntime {
     return {
       input: {
         last_audit: lastAudit ?? null,
+        last_turn: lastTurn ?? null,
         prev_state: prevState,
         source_snippets: sourceSnippets ?? [],
         user_turn: userTurn,
@@ -1189,13 +880,16 @@ export class RoughShellRuntime {
       systemPrompt: template.systemPrompt,
       turn,
       userPrompt: appendPromptAppendix(
-        renderUserPrompt(template.userPromptTemplate, {
-          LAST_AUDIT_JSON: stableJson(lastAudit ?? null),
-          PREV_STATE_JSON: stableJson(prevState),
-          SOURCE_SNIPPETS_JSON: stableJson(sourceSnippets ?? []),
-          USER_TURN: userTurn,
-        }),
-        buildPassContextAppendix("state_updater", prevState, { lastAudit }),
+        appendPromptAppendix(
+          renderUserPrompt(template.userPromptTemplate, {
+            LAST_AUDIT_JSON: stableJson(lastAudit ?? null),
+            PREV_STATE_JSON: stableJson(prevState),
+            SOURCE_SNIPPETS_JSON: stableJson(sourceSnippets ?? []),
+            USER_TURN: userTurn,
+          }),
+          buildPassContextAppendix("state_updater", prevState, { lastAudit }),
+        ),
+        lastTurn ? `LAST_TURN_CONTEXT_JSON:\n${stableJson(lastTurn)}` : undefined,
       ),
     };
   }

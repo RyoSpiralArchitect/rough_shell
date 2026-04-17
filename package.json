@@ -13,7 +13,9 @@
     "clean": "rm -rf packages/*/dist apps/*/dist",
     "cli": "npm run build --silent && node apps/cli/dist/index.js",
     "cli:mock": "npm run cli -- --provider mock",
-    "cli:mistral": "npm run cli -- --provider mistral --model mistral-large-latest"
+    "cli:mistral": "npm run cli -- --provider mistral --model mistral-large-latest",
+    "smoke": "npm run build --silent && node scripts/smoke-prompts.mjs && node scripts/smoke-state-delta.mjs && node scripts/smoke-threaded-heuristics.mjs && node scripts/smoke-openai-compat-normalization.mjs && node scripts/smoke-cli-mock.mjs",
+    "smoke:mock": "npm run build --silent && node scripts/smoke-cli-mock.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

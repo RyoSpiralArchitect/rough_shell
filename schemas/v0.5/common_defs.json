@@ -866,6 +866,18 @@
             "$ref": "#/$defs/RejectedVariant"
           }
         },
+        "term_provenances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TermProvenance"
+          }
+        },
+        "referent_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReferentBinding"
+          }
+        },
         "traces": {
           "type": "array",
           "items": {
@@ -884,6 +896,8 @@
         "negotiations",
         "interpretation_openings",
         "rejected_variants",
+        "term_provenances",
+        "referent_bindings",
         "traces"
       ]
     },
@@ -975,6 +989,64 @@
       "required": [
         "id",
         "resolution",
+        "reason"
+      ]
+    },
+    "VoidPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect": {
+          "$ref": "#/$defs/VoidEffect"
+        },
+        "effect_scope": {
+          "$ref": "#/$defs/EffectScope"
+        },
+        "coupled_with": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coupling_mode": {
+          "$ref": "#/$defs/CouplingMode"
+        },
+        "resolution_priority": {
+          "$ref": "#/$defs/Priority"
+        },
+        "unresolved_blocks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exposure_required_if_touched": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/VoidStatus"
+        },
+        "resolution_requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
         "reason"
       ]
     },
@@ -1092,10 +1164,40 @@
             "$ref": "#/$defs/RejectedVariant"
           }
         },
+        "add_term_provenances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TermProvenance"
+          }
+        },
+        "update_term_provenances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TermProvenancePatch"
+          }
+        },
+        "add_referent_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReferentBinding"
+          }
+        },
+        "update_referent_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReferentBindingPatch"
+          }
+        },
         "add_voids": {
           "type": "array",
           "items": {
             "$ref": "common_defs.json#/$defs/Void"
+          }
+        },
+        "update_voids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VoidPatch"
           }
         },
         "resolve_voids": {
@@ -1148,7 +1250,12 @@
         "add_interpretation_openings",
         "update_interpretation_openings",
         "add_rejected_variants",
+        "add_term_provenances",
+        "update_term_provenances",
+        "add_referent_bindings",
+        "update_referent_bindings",
         "add_voids",
+        "update_voids",
         "resolve_voids",
         "add_obstructions",
         "clear_obstructions",
@@ -1636,6 +1743,33 @@
         "symbolic"
       ]
     },
+    "TermOrigin": {
+      "type": "string",
+      "enum": [
+        "assistant_coinage",
+        "user_coinage",
+        "source_phrase",
+        "shared_shorthand",
+        "unknown"
+      ]
+    },
+    "ReferentKind": {
+      "type": "string",
+      "enum": [
+        "speaker",
+        "term",
+        "concept",
+        "section"
+      ]
+    },
+    "ReferentBindingStatus": {
+      "type": "string",
+      "enum": [
+        "tentative",
+        "active",
+        "stale"
+      ]
+    },
     "AnchorExposureUpdate": {
       "type": "object",
       "additionalProperties": false,
@@ -1746,6 +1880,90 @@
         "reason"
       ]
     },
+    "TermProvenancePatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "$ref": "#/$defs/TermOrigin"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Level3"
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_referents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ]
+    },
+    "ReferentBindingPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refers_to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/ReferentBindingStatus"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Level3"
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_provenances": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ]
+    },
     "RejectedVariant": {
       "type": "object",
       "additionalProperties": false,
@@ -1801,6 +2019,114 @@
         "reason",
         "superseded_by",
         "turn"
+      ]
+    },
+    "TermProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "term": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "$ref": "#/$defs/TermOrigin"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Level3"
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "first_turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "related_referents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "term",
+        "origin",
+        "confidence",
+        "evidence",
+        "first_turn",
+        "related_sections",
+        "related_referents"
+      ]
+    },
+    "ReferentBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surface": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refers_to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/ReferentKind"
+        },
+        "status": {
+          "$ref": "#/$defs/ReferentBindingStatus"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Level3"
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "related_provenances": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "surface",
+        "refers_to",
+        "kind",
+        "status",
+        "confidence",
+        "evidence",
+        "related_sections",
+        "related_provenances"
       ]
     }
   }

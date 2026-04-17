@@ -68,6 +68,8 @@ function buildCompatibilityHint(
 }
 
 const GEMINI_SCHEMA_KEYS_TO_DROP = new Set([
+  "additionalProperties",
+  "const",
   "default",
   "description",
   "enum",
@@ -83,6 +85,7 @@ const GEMINI_SCHEMA_KEYS_TO_DROP = new Set([
   "minProperties",
   "minimum",
   "pattern",
+  "required",
   "title",
 ]);
 
