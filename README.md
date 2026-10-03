@@ -87,6 +87,8 @@ This is a small TypeScript workspace:
   OpenAI-compatible adapter used for OpenAI, Gemini compatibility, and Anthropic's compatibility layer.
 - `packages/provider-anthropic`
   Anthropic tool-call adapter.
+- `apps/viewer`
+  Offline, self-contained dialogue/state replay for the desert-mermaid demo and saved local sessions.
 - `apps/cli`
   Turn-by-turn CLI / REPL for running and inspecting the runtime.
 - `schemas/v0.5`
@@ -163,6 +165,26 @@ npm run cli -- --provider mock --once "What kind of question forces the runtime 
 ```
 
 By default, the CLI starts from `state/v0.5/sample_shell_state.json`.
+
+## See dialogue state in a browser
+
+```bash
+npm run viewer:demo
+```
+
+Open `.rough-shell-runs/dialogue-viewer.html` to step through the desert-mermaid
+question and corrections, switch between before/after state, and see which
+interpretations and rejected premises carry into the next turn. This is a
+hand-authored offline fixture passed through the real four-pass runtime, not the
+historical Gemini transcript or a live-model evaluation. No API key is needed.
+
+You can also export an existing session without changing its artifacts:
+
+```bash
+npm run viewer -- --session .rough-shell-runs/<session> --out /tmp/session.html
+```
+
+See [the viewer guide](./apps/viewer/README.md) for field scope, privacy, and checks.
 
 ## Running with live providers
 
