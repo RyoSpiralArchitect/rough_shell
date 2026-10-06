@@ -172,9 +172,10 @@ By default, the CLI starts from `state/v0.5/sample_shell_state.json`.
 npm run viewer:demo
 ```
 
-Open `.rough-shell-runs/dialogue-viewer.html` to step through the desert-mermaid
-question and corrections, switch between before/after state, and see which
-interpretations and rejected premises carry into the next turn. This is a
+Open `.rough-shell-runs/dialogue-viewer.html` to step through five desert-mermaid
+turns, switch between before/after state, and see which interpretations and
+rejected premises carry forward. The fifth turn returns to the symbolic reading
+without restoring the rejected "desert implies thirst" premise. This is a
 hand-authored offline fixture passed through the real four-pass runtime, not the
 historical Gemini transcript or a live-model evaluation. No API key is needed.
 

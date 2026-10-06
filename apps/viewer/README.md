@@ -19,8 +19,9 @@ Open `.rough-shell-runs/dialogue-viewer.html` in your browser. Or choose a path:
 npm run viewer -- --demo --out /tmp/desert-mermaid.html
 ```
 
-1. Click the four turns to follow an imaginative question, selection of a fictional
-   reading, rejection of obligatory thirst, and the next answer.
+1. Click the five turns to follow an imaginative question, selection of a fictional
+   reading, rejection of obligatory thirst, a new dream, and an explicit return to
+   the symbolic reading while keeping that correction.
 2. Switch **入力前 / 応答後** to inspect the selected turn's state transition.
 3. Compare **生きている解釈** (`open` and `selected`), **否定された前提**,
    and **次へ持ち越す状態**. Rejected premises are preserved across turns.
@@ -37,6 +38,14 @@ that a live model now avoids that failure. The fixture runs the actual
 state application/postprocessing, and audit heuristics. The browser reads the
 resulting application state. No runtime contract or interpretation feature is
 reimplemented in the UI, and no live provider is instantiated.
+
+The fifth scripted turn reuses the original symbolic opening `I2` and section
+`S2`: `collapsed` / `latent` becomes `selected` / `active` only after the user's
+explicit request. Fiction remains available as the latent section `S1`, while
+the turn-3 rejection `R1` and constraint `A1` remain unchanged. The compiler
+commits to `I2` and emits a speculative symbolic claim from `S2`; switching the
+reading does not reset the correction. This is a fixture demonstration of the
+existing schema, not a new live-model capability or an added historical turn.
 
 ## Inspect an existing local session
 
@@ -69,7 +78,8 @@ npm run smoke:viewer
 npm run smoke
 ```
 
-The viewer smoke checks all four actual runtime turns, state continuity, explicit
-rejection persistence, fixture provenance, import ordering/failures, exporter
+The viewer smoke checks all five actual runtime turns, all four passes per turn,
+state continuity, symbolic reactivation with unchanged rejection and constraint,
+compiler frame selection, fixture provenance, import ordering/failures, exporter
 allowlisting and escaping, and CLI errors. The implementation adds no third-party
 dependencies. Browser QA can use a local static server or the generated `file:` URL.

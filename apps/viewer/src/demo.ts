@@ -47,6 +47,13 @@ const script = [
     answer:
       "創作：オアシスの人魚は、月が小さな銀の魚になり、池の底で眠る夢を見た。朝、彼女の髪には星の砂が一粒だけ残っていた。",
   },
+  {
+    label: "5 · 訂正を保って象徴の読みへ戻る",
+    user:
+      "では、最初に保留した象徴としての読み方に戻ろう。砂漠なら必ず渇望するという前提は戻さずに、オアシスの人魚を解釈して。",
+    answer:
+      "象徴として読むなら、オアシスの人魚は「周囲と違っていても、自分に合う場所で満ち足りて生きること」を表すかもしれません。砂漠にいるだけで渇望を背負わせず、砂と水の境目を二つの世界が出会う場所としても読めます。",
+  },
 ] as const;
 
 /** Blank v0.5 state using the sample contract, without its unrelated dialogue. */
@@ -252,6 +259,48 @@ function stateDelta(turn: number): StateDelta {
       cause: "Produce a new invented scene without restoring the rejected premise.",
       turn,
     }];
+  } else if (turn === 5) {
+    delta.update_interpretation_openings = [
+      { id: FICTION, status: "collapsed", reason: "今回は物語の創作から象徴の解釈へ切り替えた。" },
+      { id: SYMBOLIC, status: "selected", reason: "ユーザーが保留していた象徴の読み方へ戻るよう明確に求めた。" },
+    ];
+    delta.update_sections = [
+      {
+        id: MERMAID,
+        status: "latent",
+        revive_when: ["ユーザーが人魚の物語の創作に戻るよう明確に求めたとき。"],
+      },
+      {
+        id: SYMBOLIC_SECTION,
+        status: "active",
+        warrant: "user_asserted",
+        domain_mode: "symbolic",
+        gist: "渇望を必須とする前提を退けたまま、オアシスの人魚を象徴として解釈する。",
+        revive_when: [],
+        variants: ["周囲と違っていても、自分に合う場所で満ち足りて生きること。"],
+        projection_signature: {
+          ...section(SYMBOLIC_SECTION, "symbolic").projection_signature,
+          clarification_needs: [],
+          anchor_touch: [NO_ASSUMED_THIRST],
+        },
+      },
+    ];
+    delta.traces = [
+      {
+        id: "T5-revive-symbolic",
+        action: "revive",
+        targets: [SYMBOLIC_SECTION, SYMBOLIC],
+        cause: "The user explicitly returns to the symbolic reading without reopening the rejected thirst premise.",
+        turn,
+      },
+      {
+        id: "T5-select-symbolic",
+        action: "resolve",
+        targets: [FICTION, SYMBOLIC],
+        cause: "Select the existing symbolic opening and retain fiction as a latent alternative.",
+        turn,
+      },
+    ];
   }
 
   return delta;
@@ -261,11 +310,13 @@ function stateDelta(turn: number): StateDelta {
 export class DesertMermaidDemoProvider implements JsonProvider {
   public readonly name = "scripted-desert-mermaid";
 
-  public readonly model = "offline-fixture-v1";
+  public readonly model = "offline-fixture-v2";
 
   public async generateJson(request: JsonGenerationRequest): Promise<unknown> {
     const entry = script[request.turn - 1];
     if (!entry) throw new Error(`No scripted demo turn ${request.turn}.`);
+    const symbolicReturn = request.turn === 5;
+    const selectedReading = symbolicReturn ? SYMBOLIC : FICTION;
 
     switch (request.pass) {
       case "state_updater":
@@ -277,7 +328,9 @@ export class DesertMermaidDemoProvider implements JsonProvider {
           projection_style_recommendation: request.turn === 1 ? "clarify" : "single",
           global_reason: request.turn === 1
             ? "Both readings remain live; the scripted response asks the user to choose."
-            : "The user selected fiction; preserve later corrections inside that branch.",
+            : symbolicReturn
+              ? "The user explicitly returned to symbolic interpretation; preserve the correction across that switch."
+              : "The user selected fiction; preserve later corrections inside that branch.",
           decisions: [],
           traces: [],
         };
@@ -290,19 +343,21 @@ export class DesertMermaidDemoProvider implements JsonProvider {
           turn: request.turn,
           projection_ir: {
             selected_frontiers: [],
-            frame_commitments: request.turn === 1 ? [FICTION, SYMBOLIC] : [FICTION],
+            frame_commitments: request.turn === 1 ? [FICTION, SYMBOLIC] : [selectedReading],
             claim_frames: [{
               id: claimId,
-              section: MERMAID,
+              section: symbolicReturn ? SYMBOLIC_SECTION : MERMAID,
               kind: request.turn === 1 || request.turn === 3 ? "meta" : "speculative",
               text_intent: request.turn === 1
                 ? "Ask which of two live readings to use."
                 : request.turn === 3
                   ? "Recognize and retain the user's correction to an invented premise."
-                  : "Offer an explicitly invented fictional scene.",
+                  : symbolicReturn
+                    ? "Offer a possible symbolic reading without restoring obligatory thirst."
+                    : "Offer an explicitly invented fictional scene.",
               warrant: "local_inference",
               depends_on: [],
-              licensed_if: request.turn === 1 ? [] : [FICTION],
+              licensed_if: request.turn === 1 ? [] : [selectedReading],
               drop_if_unexposed: false,
             }],
             scars: [],
@@ -379,7 +434,7 @@ export async function buildDemo(): Promise<ViewerSession> {
   return {
     title: "対話は、訂正を覚えている。",
     description:
-      "手書き fixture を使うオフラインデモ。実際の四パス runtime で、解釈・創作の許可・訂正の持ち越しをたどります。API 呼び出しはありません。",
+      "手書き fixture を使う全5ターンのオフラインデモ。実際の四パス runtime で、解釈・創作の許可・訂正を保った象徴の読みへの復帰をたどります。API 呼び出しはありません。",
     source:
       "「砂漠の人魚」の失敗例に着想した新しい固定応答デモ。元の Gemini ログではなく、audit: pass もモデル性能の証明ではありません。",
     turns,
