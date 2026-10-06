@@ -1,0 +1,9 @@
+{
+  "name": "@rough-shell/viewer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rough-shell/core": "0.0.0"
+  }
+}
