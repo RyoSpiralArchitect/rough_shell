@@ -10,4 +10,5 @@ export {
   RoughShellRuntime,
 } from "./runtime.js";
 export { FileArtifactStore } from "./store.js";
+export { loadTurnCheckpoint, type TurnCheckpoint } from "./checkpoint.js";
 export type * from "./types.js";

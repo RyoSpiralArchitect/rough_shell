@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>rough_shell · 別の続きへ</title>
+<style>/* VIEWER_CSS */</style>
+</head>
+<body>
+<header><a class="brand" href="#">rough_shell</a><span>対話の分岐 / v0.5</span><span class="offline">OFFLINE COMPARISON</span></header>
+<main>
+  <div class="intro"><p class="eyebrow">DIALOGUE / FORK / COMPARE</p><h1 class="comparison-title"><span>あの一言から、</span><span>別の続きへ。</span></h1><p>問いを変えると、答えと記憶はどう変わる？　二つの保存済みの会話を並べて、選んだ解釈と、持ち越した訂正をたどります。</p><p class="source" id="provenance-note"></p></div>
+  <nav id="comparison-timeline" aria-label="比較するターン"></nav>
+  <div class="turnbar"><p id="turn-status" role="status" aria-live="polite"></p><div class="step-controls"><button id="previous" type="button">前のターン</button><button id="next" type="button">次のターン</button></div></div>
+  <div class="fork-origin"><span class="fork-mark" aria-hidden="true">⑂</span><div><strong id="origin-status"></strong><p class="muted" id="origin-detail"></p></div></div>
+  <div class="branch-grid">
+    <section class="branch branch-a" aria-labelledby="left-heading"><div class="section-heading"><h2 id="left-heading">A · 元の続き</h2><span id="left-audit"></span></div><div id="left-dialogue"></div><div class="branch-memory" id="left-memory"></div></section>
+    <section class="branch branch-b" aria-labelledby="right-heading"><div class="section-heading"><h2 id="right-heading">B · 別の続き</h2><span id="right-audit"></span></div><div id="right-dialogue"></div><div class="branch-memory" id="right-memory"></div></section>
+  </div>
+  <section class="comparison-state" aria-labelledby="difference-heading"><div class="inspector-top"><h2 id="difference-heading">二つの枝に残ったもの</h2><div class="segmented" role="group" aria-label="比べる状態の時点"><button id="before" type="button" aria-pressed="false">入力前</button><button id="after" type="button" aria-pressed="true">応答後</button></div></div><p id="comparison-summary" class="muted" role="status"></p><div id="differences"></div><details id="shared-details"><summary id="shared-summary">共通の状態を見る</summary><div id="shared-items"></div></details></section>
+  <details><summary>表示している状態の JSON</summary><p class="muted">解釈・セクション・却下された前提・事実の不足を抜き出して比較しています。差分の表示は、この範囲に限ります。</p><pre id="json"></pre></details>
+  <details class="provenance"><summary>この比較の出どころ</summary><p id="left-source"></p><p id="right-source"></p><p class="muted">保存済みの結果を読む画面です。ボタン操作でモデルは実行されません。新しい続きを試すには、CLI の --fork と --at-turn を使います。</p></details>
+  <footer><p>状態が一致していても、モデルの内部状態や生成結果の再現性を保証するものではありません。</p><a href="https://github.com/RyoSpiralArchitect/rough_shell" target="_blank" rel="noreferrer">rough_shell on GitHub</a></footer>
+</main>
+<noscript>この比較画面の操作には JavaScript を有効にしてください。</noscript>
+<script type="application/json" id="session-data">/* VIEWER_DATA */</script>
+<script>/* VIEWER_JS */</script>
+</body>
+</html>

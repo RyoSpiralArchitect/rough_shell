@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { TurnCheckpoint } from "@rough-shell/core";
 
 interface JournalError {
   failureArtifactDirectory?: string;
@@ -11,6 +12,7 @@ interface JournalError {
 }
 
 interface SessionStartEvent {
+  forked_from?: TurnCheckpoint["source"];
   artifacts_dir: string;
   cwd: string;
   event: "session_started";
@@ -169,6 +171,7 @@ export class CliSessionJournal {
       model?: string;
       provider: string;
       statePath: string;
+      forkedFrom?: TurnCheckpoint["source"];
     },
   ) {
     this.sessionDir = sessionDir;
@@ -185,6 +188,7 @@ export class CliSessionJournal {
       session_dir: this.sessionDir,
       started_at: nowIso(),
       state_path: metadata.statePath,
+      ...(metadata.forkedFrom ? { forked_from: metadata.forkedFrom } : {}),
     };
 
     if (!existsSync(join(this.sessionDir, "session.json"))) {
@@ -195,6 +199,7 @@ export class CliSessionJournal {
       artifacts_dir: metadata.artifactsDir,
       cwd: metadata.cwd,
       event: "session_started",
+      ...(metadata.forkedFrom ? { forked_from: metadata.forkedFrom } : {}),
       mode: metadata.mode,
       ...(metadata.model ? { model: metadata.model } : {}),
       pid: process.pid,

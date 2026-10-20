@@ -70,6 +70,49 @@ of private model reasoning. The carry panel always describes the response's fina
 state; the before/after toggle applies to the inspector and JSON. Matching
 carry-over only compares the displayed fields, not omitted state fields.
 
+## Compare two continuations
+
+```bash
+npm run viewer:fork-demo
+```
+
+The fork demo saves the original five-turn fixture and loads its completed turn
+3 through `loadTurnCheckpoint`. A second runtime run starts from that exact
+state and prior dialogue context, selects the symbolic reading on turn 4, and
+retains `R1` (rejected thirst premise) and `A1` (the user's constraint). The
+original turn 4 continues the fictional dream instead. Both providers are
+scripted; the displayed audit verdicts do not establish live-model performance.
+Each invocation saves new demo directories and prints their paths for further
+CLI forks. The existing `viewer:demo` remains the original linear replay.
+
+Export your own pair without changing either session:
+
+```bash
+npm run viewer -- --session .rough-shell-runs/<original> \
+  --compare .rough-shell-runs/<fork> --out /tmp/branches.html
+```
+
+The comparison aligns **actual state turn numbers**, including forks that begin
+at turn 4 or later. It does not align by array position or fabricate missing
+turns. A missing counterpart is shown as unavailable, never as an empty state
+or a deletion. The default view selects the first pair with equal input states,
+if one exists; URL hashes such as `#turn=4` select the actual turn number.
+
+The shared-start indicator compares **full** `state_before` objects before any
+fields are excluded from the export. It does not infer parentage or assert
+identical provider settings or dialogue context. The before/after toggle applies
+to the memory summaries, differences, and JSON; the dialogue always shows the
+saved input and response for that turn. Differences match IDs within each of the
+four displayed categories. Common, changed, A-only, and B-only items stay
+separate; expand a difference to inspect all its displayed fields.
+
+As with the linear viewer, exports contain only the explicit field allowlist,
+use text nodes for dynamic content, escape embedded JSON, and block network
+connections. Prompts, raw provider output, traces, full anchors, filesystem paths
+from fork metadata, and last-turn context are not embedded. Conversation text
+itself may still be private. This page reads saved results; new continuations
+run through the CLI's `--fork <session> --at-turn <N>` options.
+
 ## Check
 
 ```bash
@@ -82,4 +125,7 @@ The viewer smoke checks all five actual runtime turns, all four passes per turn,
 state continuity, symbolic reactivation with unchanged rejection and constraint,
 compiler frame selection, fixture provenance, import ordering/failures, exporter
 allowlisting and escaping, and CLI errors. The implementation adds no third-party
-dependencies. Browser QA can use a local static server or the generated `file:` URL.
+dependencies. `npm run smoke` also checks checkpoint validation, exact prior
+dialogue context, simultaneous independent CLI forks, a fork of a fork, parent
+file hashes, retained corrections, comparison alignment, and safe export.
+For browser QA, serve the generated file with a local static HTTP server.

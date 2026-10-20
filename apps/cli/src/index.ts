@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { stdin as input, stdout as output } from "node:process";
 
 import {
   FileArtifactStore,
   findRepositoryRoot,
+  loadTurnCheckpoint,
   type LastTurnContext,
   PassValidationRuntimeError,
   RoughShellRuntime,
@@ -26,6 +27,8 @@ type ProviderName = "anthropic" | "mistral" | "mock" | "openai-compat";
 
 interface CliOptions {
   artifactsDir: string;
+  forkSession?: string;
+  atTurn?: number;
   baseUrl?: string;
   help: boolean;
   model?: string;
@@ -75,6 +78,7 @@ function usage(): string {
     "Usage:",
     "  npm run cli -- --provider mock",
     "  npm run cli -- --provider mock --once \"test the runtime\"",
+    "  npm run cli -- --fork <session-directory> --at-turn 3 --once \"Try another continuation\"",
     "  npm run cli -- --provider mistral --model mistral-large-latest",
     "  npm run cli -- --provider openai-compat --model <model>",
     "  npm run cli -- --provider openai --model <model>",
@@ -85,6 +89,8 @@ function usage(): string {
     "  --model <name>",
     "  --base-url <url>",
     "  --state <path>",
+    "  --fork <session-directory>  start a new session from a completed turn",
+    "  --at-turn <number>         use that turn's final state and prior dialogue",
     "  --artifacts <dir>",
     "  --once <text>",
     "  --help",
@@ -99,6 +105,7 @@ function usage(): string {
 }
 
 function parseArgs(argv: string[], repoRoot: string): CliOptions {
+  let explicitState = false;
   const options: CliOptions = {
     artifactsDir: resolve(repoRoot, ".rough-shell-runs"),
     help: false,
@@ -111,6 +118,18 @@ function parseArgs(argv: string[], repoRoot: string): CliOptions {
     const next = argv[index + 1];
 
     switch (arg) {
+      case "--fork":
+        if (!next || next.startsWith("--")) throw new Error("--fork requires a session directory.");
+        options.forkSession = resolve(next);
+        index += 1;
+        break;
+      case "--at-turn":
+        if (!next || !/^[1-9]\d*$/.test(next) || !Number.isSafeInteger(Number(next))) {
+          throw new Error("--at-turn requires a positive safe integer.");
+        }
+        options.atTurn = Number(next);
+        index += 1;
+        break;
       case "--provider":
         if (
           next !== "mock" &&
@@ -145,6 +164,7 @@ function parseArgs(argv: string[], repoRoot: string): CliOptions {
           throw new Error("--state requires a value.");
         }
         options.statePath = resolve(next);
+        explicitState = true;
         index += 1;
         break;
       case "--artifacts":
@@ -170,6 +190,10 @@ function parseArgs(argv: string[], repoRoot: string): CliOptions {
     }
   }
 
+  if (Boolean(options.forkSession) !== (options.atTurn !== undefined)) {
+    throw new Error("Use --fork and --at-turn together.");
+  }
+  if (options.forkSession && explicitState) throw new Error("Choose --fork or --state, not both.");
   return options;
 }
 
@@ -344,18 +368,26 @@ async function main(): Promise<void> {
 
   const schemaRegistry = new SchemaRegistry(repoRoot);
   const runtime = new RoughShellRuntime({ schemaRegistry });
+  const checkpoint = options.forkSession && options.atTurn !== undefined
+    ? await loadTurnCheckpoint(options.forkSession, options.atTurn, schemaRegistry)
+    : undefined;
+  let currentState = checkpoint?.state ?? await loadState(schemaRegistry, options.statePath);
+  let lastTurn: LastTurnContext | undefined = checkpoint?.last_turn;
+  const provider = createProvider(options);
   const artifactStore = new FileArtifactStore(options.artifactsDir);
+  const statePath = checkpoint ? join(artifactStore.sessionDir, "fork.json") : options.statePath;
   const journal = new CliSessionJournal(artifactStore.sessionDir, {
     artifactsDir: options.artifactsDir,
     cwd: process.cwd(),
     mode: options.once ? "once" : "repl",
     provider: options.provider,
-    statePath: options.statePath,
+    statePath,
+    ...(checkpoint ? { forkedFrom: checkpoint.source } : {}),
     ...(options.model ? { model: options.model } : {}),
   });
-  const provider = createProvider(options);
-  let currentState = await loadState(schemaRegistry, options.statePath);
-  let lastTurn: LastTurnContext | undefined;
+  if (checkpoint) {
+    await writeFile(statePath, `${JSON.stringify(checkpoint, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+  }
   let lastArtifactDirectory: string | undefined;
   let pendingTurn:
     | {
@@ -382,7 +414,8 @@ async function main(): Promise<void> {
 
   console.log("rough-shell runtime CLI");
   console.log(`provider: ${provider.name}${provider.model ? ` (${provider.model})` : ""}`);
-  console.log(`state: ${options.statePath}`);
+  console.log(`state: ${statePath}`);
+  if (checkpoint) console.log(`forked from: ${checkpoint.source.session_dir} / turn ${checkpoint.source.turn}`);
   console.log(`artifacts: ${artifactStore.sessionDir}`);
   console.log(`journal: ${journal.journalPath}`);
   console.log(`summary: ${summarizeState(currentState)}`);

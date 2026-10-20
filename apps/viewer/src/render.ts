@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isDeepStrictEqual } from "node:util";
 import type { ShellState } from "@rough-shell/core";
 import type { ViewerSession } from "./types.js";
 
@@ -53,4 +54,27 @@ export async function renderViewer(session: ViewerSession): Promise<string> {
   return template.replace("/* VIEWER_CSS */", () => css)
     .replace("/* VIEWER_JS */", () => js)
     .replace("/* VIEWER_DATA */", () => serializeData(selectSession(session)));
+}
+
+export async function renderComparison(left: ViewerSession, right: ViewerSession): Promise<string> {
+  for (const session of [left, right]) {
+    const numbers = session.turns.map((turn) => turn.stateAfter.turn);
+    if (new Set(numbers).size !== numbers.length) throw new Error("Duplicate turn numbers cannot be aligned.");
+  }
+  const data = {
+    left: selectSession(left),
+    right: selectSession(right),
+    // Compare full saved states before the export allowlist is applied.
+    sharedStartTurns: left.turns.filter((turn) => right.turns.some((other) =>
+      turn.stateAfter.turn === other.stateAfter.turn && isDeepStrictEqual(turn.stateBefore, other.stateBefore),
+    )).map((turn) => turn.stateAfter.turn),
+  };
+  const [template, css, js] = await Promise.all([
+    readFile(new URL("../public/compare.html", import.meta.url), "utf8"),
+    readFile(new URL("../public/style.css", import.meta.url), "utf8"),
+    readFile(new URL("../public/compare.js", import.meta.url), "utf8"),
+  ]);
+  return template.replace("/* VIEWER_CSS */", () => css)
+    .replace("/* VIEWER_JS */", () => js)
+    .replace("/* VIEWER_DATA */", () => serializeData(data));
 }
