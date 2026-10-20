@@ -187,6 +187,41 @@ npm run viewer -- --session .rough-shell-runs/<session> --out /tmp/session.html
 
 See [the viewer guide](./apps/viewer/README.md) for field scope, privacy, and checks.
 
+## Try another continuation from the same conversation
+
+```bash
+npm run viewer:fork-demo
+```
+
+Open `.rough-shell-runs/dialogue-viewer.html` to compare two continuations from
+the same turn-3 correction: another fictional dream, or an immediate return to
+the symbolic reading. Both run the real four-pass loop and preserve the rejected
+thirst premise. This is a scripted fixture, not a live-model evaluation. The
+command also prints the two saved session directories.
+
+To branch from one of your own completed turns:
+
+```bash
+npm run cli -- --provider mock --fork .rough-shell-runs/<session> --at-turn 3 \
+  --once "Keep that correction, but try a different reading."
+npm run viewer -- --session .rough-shell-runs/<original> \
+  --compare .rough-shell-runs/<new-session> --out /tmp/branches.html
+```
+
+`--fork` creates a new session from the selected turn's final state **and** its
+last dialogue context (input, answer, negotiation, projection, audit). Its first
+new turn is `N + 1`; later turns in the source session are not loaded. The source
+files stay unchanged. `fork.json` records the starting state, context, parent
+directory/turn, and SHA-256 of the exact source `turn.json`; the journal also
+records that lineage. Each default session ID includes a UUID so simultaneous
+forks do not share output directories.
+
+The provider is chosen by the new invocation, defaulting to `mock`; live use
+requires the existing provider/model/key options below. Forking preserves
+application state, not a model's hidden state, random seed, or external services.
+See [the comparison guide](apps/viewer/README.md#compare-two-continuations) for
+alignment and missing-turn behavior.
+
 ## Running with live providers
 
 Mistral:

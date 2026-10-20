@@ -1,10 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import type { ArtifactStore, FailedPassArtifacts, TurnArtifacts } from "./types.js";
 
 function timestampSessionId(date = new Date()): string {
-  return date.toISOString().replace(/[:.]/g, "-");
+  return `${date.toISOString().replace(/[:.]/g, "-")}-${randomUUID()}`;
 }
 
 async function writeJson(filePath: string, value: unknown): Promise<void> {

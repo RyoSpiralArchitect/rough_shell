@@ -1,6 +1,7 @@
 import { RoughShellRuntime } from "@rough-shell/core";
 import type {
   AuditResult,
+  ArtifactStore,
   JsonGenerationRequest,
   JsonProvider,
   LastTurnContext,
@@ -20,7 +21,7 @@ const SYMBOLIC_SECTION = "S2";
 const REJECTED_THIRST = "R1";
 const NO_ASSUMED_THIRST = "A1";
 
-const script = [
+export const demoScript = [
   {
     label: "1 · 二つの読み方を開く",
     user: "砂漠の人魚はどんな夢を見るだろうか？",
@@ -119,7 +120,7 @@ function section(id: string, domainMode: "fictional" | "symbolic"): Section {
   };
 }
 
-function stateDelta(turn: number): StateDelta {
+function stateDelta(turn: number, symbolicReturn: boolean): StateDelta {
   const delta: StateDelta = {
     version: "v0.5",
     turn,
@@ -246,7 +247,7 @@ function stateDelta(turn: number): StateDelta {
       cause: "Retain the user's rejection of obligatory thirst while keeping the fictional branch.",
       turn,
     }];
-  } else if (turn === 4) {
+  } else if (turn === 4 && !symbolicReturn) {
     delta.update_sections = [{
       id: MERMAID,
       domain_mode: "fictional",
@@ -259,7 +260,7 @@ function stateDelta(turn: number): StateDelta {
       cause: "Produce a new invented scene without restoring the rejected premise.",
       turn,
     }];
-  } else if (turn === 5) {
+  } else if (symbolicReturn) {
     delta.update_interpretation_openings = [
       { id: FICTION, status: "collapsed", reason: "今回は物語の創作から象徴の解釈へ切り替えた。" },
       { id: SYMBOLIC, status: "selected", reason: "ユーザーが保留していた象徴の読み方へ戻るよう明確に求めた。" },
@@ -287,14 +288,14 @@ function stateDelta(turn: number): StateDelta {
     ];
     delta.traces = [
       {
-        id: "T5-revive-symbolic",
+        id: `T${turn}-revive-symbolic`,
         action: "revive",
         targets: [SYMBOLIC_SECTION, SYMBOLIC],
         cause: "The user explicitly returns to the symbolic reading without reopening the rejected thirst premise.",
         turn,
       },
       {
-        id: "T5-select-symbolic",
+        id: `T${turn}-select-symbolic`,
         action: "resolve",
         targets: [FICTION, SYMBOLIC],
         cause: "Select the existing symbolic opening and retain fiction as a latent alternative.",
@@ -310,17 +311,21 @@ function stateDelta(turn: number): StateDelta {
 export class DesertMermaidDemoProvider implements JsonProvider {
   public readonly name = "scripted-desert-mermaid";
 
-  public readonly model = "offline-fixture-v2";
+  public readonly model: string;
+
+  public constructor(private readonly symbolicTurn: 4 | 5 = 5) {
+    this.model = symbolicTurn === 5 ? "offline-fixture-v2" : "offline-fixture-v2-symbolic-at-4";
+  }
 
   public async generateJson(request: JsonGenerationRequest): Promise<unknown> {
-    const entry = script[request.turn - 1];
-    if (!entry) throw new Error(`No scripted demo turn ${request.turn}.`);
-    const symbolicReturn = request.turn === 5;
+    const symbolicReturn = request.turn === this.symbolicTurn;
+    const entry = symbolicReturn ? demoScript[4] : demoScript[request.turn - 1];
+    if (!entry || request.turn > this.symbolicTurn) throw new Error(`No scripted demo turn ${request.turn}.`);
     const selectedReading = symbolicReturn ? SYMBOLIC : FICTION;
 
     switch (request.pass) {
       case "state_updater":
-        return stateDelta(request.turn);
+        return stateDelta(request.turn, symbolicReturn);
       case "negotiator": {
         const result: NegotiationResult = {
           version: "v0.5",
@@ -394,7 +399,7 @@ export class DesertMermaidDemoProvider implements JsonProvider {
 }
 
 /** Run the real runtime; the renderer selects the smaller public field allowlist. */
-export async function buildDemo(): Promise<ViewerSession> {
+export async function buildDemo(artifactStore?: ArtifactStore): Promise<ViewerSession> {
   const runtime = new RoughShellRuntime();
   const registry = runtime.getSchemaRegistry();
   const provider = new DesertMermaidDemoProvider();
@@ -402,11 +407,12 @@ export async function buildDemo(): Promise<ViewerSession> {
   let lastTurn: LastTurnContext | undefined;
   const turns: ViewerTurn[] = [];
 
-  for (const entry of script) {
+  for (const entry of demoScript) {
     const result = await runtime.runTurn({
       provider,
       prevState: state,
       userTurn: entry.user,
+      ...(artifactStore ? { artifactStore } : {}),
       ...(lastTurn ? { lastTurn, lastAudit: lastTurn.audit } : {}),
     });
     registry.validateShellState(result.state);
